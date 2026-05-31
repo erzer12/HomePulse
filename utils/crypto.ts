@@ -1,4 +1,4 @@
-import * as Crypto from 'expo-crypto';
+import { createHash } from 'crypto';
 
 export async function verifyRuleConfigSignature(
   ruleConfigRaw: string,
@@ -7,10 +7,7 @@ export async function verifyRuleConfigSignature(
 ): Promise<boolean> {
   if (!secret || !signature) return false;
 
-  const expected = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    `${secret}:${ruleConfigRaw}`
-  );
+  const expected = createHash('sha256').update(`${secret}:${ruleConfigRaw}`).digest('hex');
   const provided = signature.trim().toLowerCase();
   return expected === provided;
 }

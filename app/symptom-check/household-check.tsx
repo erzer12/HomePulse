@@ -1,9 +1,22 @@
-import { Text, View } from 'react-native';
+import { router } from 'expo-router';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 export default function HouseholdCheckScreen() {
   return (
-    <View style={{ flex: 1, padding: 16 }}>
-      <Text>Household Check</Text>
+    <View style={styles.container}>
+      <Text style={styles.heading}>Household Check</Text>
+      <Text style={styles.text}>Confirm the readiness snapshot before the result screen.</Text>
+      <Pressable style={styles.primaryButton} onPress={() => router.push('/result/action-state')}>
+        <Text style={styles.primaryButtonText}>All correct, continue</Text>
+      </Pressable>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB', gap: 12 },
+  heading: { fontSize: 28, fontWeight: '700', color: '#1F2937' },
+  text: { fontSize: 15, color: '#6B7280' },
+  primaryButton: { backgroundColor: '#1B6CA8', paddingVertical: 14, borderRadius: 12, marginTop: 8 },
+  primaryButtonText: { color: '#FFFFFF', textAlign: 'center', fontWeight: '700' },
+});
