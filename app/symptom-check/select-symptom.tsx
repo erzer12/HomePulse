@@ -1,6 +1,7 @@
 import React from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '@/constants/colors';
 import { SymptomIcon } from '@/components/icons/SymptomIcon';
 import { Button } from '@/components/ui/Button';
@@ -17,14 +18,13 @@ const SYMPTOM_CATEGORIES = [
 
 export default function SelectSymptomScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: insets.top }]}>
       <Stack.Screen 
         options={{ 
-          title: 'Check Symptoms',
-          headerStyle: { backgroundColor: COLORS.background },
-          headerShadowVisible: false,
+          headerShown: false,
         }} 
       />
       

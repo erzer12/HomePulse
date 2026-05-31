@@ -16,9 +16,12 @@ export default function HomeScreen() {
   const activeCase = {
     patientName: 'Rohan',
     state: {
-      level: 2,
+      level: 2 as const,
       label: 'Guided Home Care',
       explanation: 'Manage symptoms at home. Next check-in due in 2h 15m.',
+      triggers: ['Fever over 38°C'],
+      redFlags: ['Difficulty breathing', 'Confusion'],
+      recheckIntervalMinutes: 120,
     }
   };
 

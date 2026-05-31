@@ -17,6 +17,8 @@ export function SymptomIcon({ label, iconName, onPress, selected }: SymptomIconP
   return (
     <Pressable 
       onPress={onPress}
+      accessibilityLabel={`${label} — tap to select`}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.container,
         selected && styles.selected,

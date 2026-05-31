@@ -1,5 +1,23 @@
 {
-  "app.name": "HomePulse",
-  "home.title": "Family health triage",
-  "home.start": "Start symptom check"
+  "home": {
+    "welcome": "Welcome to HomePulse",
+    "startCheck": "Start Symptom Check",
+    "addPatient": "Add Patient Profile"
+  },
+  "symptoms": {
+    "fever": { "label": "Fever" },
+    "respiratory": { "label": "Breathing" },
+    "gastrointestinal": { "label": "Stomach / Vomiting" },
+    "dehydration": { "label": "Dehydration" },
+    "neurological": { "label": "Confusion / Seizure" },
+    "pain": { "label": "Pain" },
+    "weakness": { "label": "Weakness" }
+  },
+  "states": {
+    "1": { "label": "Monitor at Home", "short": "Monitor" },
+    "2": { "label": "Guided Home Care", "short": "Home Care" },
+    "3": { "label": "Arrange Teleconsultation", "short": "Teleconsult" },
+    "4": { "label": "Seek Urgent Care Now", "short": "Urgent" }
+  },
+  "disclaimer": "This app provides guidance — it does not diagnose. Always consult a doctor for medical decisions."
 }

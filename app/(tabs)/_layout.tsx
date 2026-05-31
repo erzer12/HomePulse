@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { Pressable } from 'react-native';
-import { Home, Users, History } from 'lucide-react-native';
+import { Home, Users, History, Settings } from 'lucide-react-native';
 import { COLORS } from '@/constants/colors';
 
 export default function TabsLayout() {
@@ -16,16 +16,22 @@ export default function TabsLayout() {
           paddingBottom: 12, // More bottom padding for labels
           paddingTop: 8,
         },
-        tabBarButton: (props) => (
-          <Pressable 
-            {...props} 
-            android_ripple={null} // Remove the old splash effect
-            style={({ pressed }) => [
-              props.style,
-              { opacity: pressed ? 0.7 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }
-            ]}
-          />
-        ),
+        tabBarButton: (props) => {
+          const { style, onPress, children, ...rest } = props;
+          return (
+            <Pressable 
+              onPress={onPress}
+              android_ripple={null}
+              style={({ pressed }) => [
+                style,
+                { opacity: pressed ? 0.7 : 1, transform: [{ scale: pressed ? 0.98 : 1 }] }
+              ]}
+              {...rest}
+            >
+              {children}
+            </Pressable>
+          );
+        },
         headerShown: false,
       }}
     >
@@ -48,6 +54,13 @@ export default function TabsLayout() {
         options={{ 
           title: 'History',
           tabBarIcon: ({ color, size }) => <History color={color} size={size} />,
+        }} 
+      />
+      <Tabs.Screen 
+        name='settings' 
+        options={{ 
+          title: 'Settings',
+          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
         }} 
       />
     </Tabs>

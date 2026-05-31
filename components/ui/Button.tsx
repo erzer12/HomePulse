@@ -45,6 +45,8 @@ export function Button({
   return (
     <Pressable 
       onPress={onPress} 
+      accessibilityLabel={title}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.base,
         getVariantStyles(),

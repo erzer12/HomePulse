@@ -4,11 +4,12 @@ import { Stack, useRouter } from 'expo-router';
 import { COLORS, SPACING, RADIUS } from '@/constants/colors';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { QrCode, Copy, Share2, Info } from 'lucide-react-native';
+import QRCode from 'react-native-qrcode-svg';
+import { Copy, Share2, Info } from 'lucide-react-native';
 
 export default function ShareLinkScreen() {
   const router = useRouter();
-  const shareUrl = 'https://homepulse.app/share/case_abc123';
+  const shareUrl = 'homepulse://case/abc123_demo';
 
   const onShare = async () => {
     try {
@@ -40,7 +41,12 @@ export default function ShareLinkScreen() {
 
         <Card variant="elevated" style={styles.qrCard}>
           <View style={styles.qrPlaceholder}>
-            <QrCode size={180} color={COLORS.textPrimary} strokeWidth={1.5} />
+            <QRCode 
+              value={shareUrl}
+              size={180}
+              color={COLORS.textPrimary}
+              backgroundColor="#FFFFFF"
+            />
           </View>
           <Text style={styles.qrHint}>Scan to open shared view</Text>
         </Card>
