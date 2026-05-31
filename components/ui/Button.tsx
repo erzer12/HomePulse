@@ -1,5 +1,6 @@
 import { Pressable, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native';
 import { COLORS, SPACING, RADIUS } from '@/constants/colors';
+import { TACTILE } from '@/constants/motion';
 
 interface ButtonProps {
   title: string;
@@ -52,7 +53,10 @@ export function Button({
         getVariantStyles(),
         size === 'large' && styles.large,
         fullWidth && styles.fullWidth,
-        pressed && styles.pressed,
+        pressed && { 
+          opacity: 0.7, 
+          transform: [{ scale: TACTILE.activeScale }] 
+        },
         style
       ]}
     >
@@ -73,9 +77,5 @@ const styles = StyleSheet.create({
   },
   fullWidth: {
     width: '100%',
-  },
-  pressed: {
-    opacity: 0.8,
-    transform: [{ translateY: 1 }], // Tactile push feedback
   },
 });

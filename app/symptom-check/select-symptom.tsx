@@ -3,8 +3,10 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING } from '@/constants/colors';
+import { DURATION } from '@/constants/motion';
 import { SymptomIcon } from '@/components/icons/SymptomIcon';
 import { Button } from '@/components/ui/Button';
+import { MotionView } from '@/components/ui/MotionView';
 
 const SYMPTOM_CATEGORIES = [
   { id: 'fever', label: 'Fever', icon: 'Thermometer' },
@@ -29,34 +31,39 @@ export default function SelectSymptomScreen() {
       />
       
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={styles.question}>What is Rohan experiencing?</Text>
-          <View style={styles.disclaimer}>
-            <Text style={styles.disclaimerText}>
-              This app guides you through common symptoms. In case of a life-threatening emergency, call 112 immediately.
-            </Text>
+        <MotionView duration={400}>
+          <View style={styles.header}>
+            <Text style={styles.question}>What is Rohan experiencing?</Text>
+            <View style={styles.disclaimer}>
+              <Text style={styles.disclaimerText}>
+                This app guides you through common symptoms. In case of a life-threatening emergency, call 112 immediately.
+              </Text>
+            </View>
           </View>
-        </View>
+        </MotionView>
 
         <View style={styles.grid}>
-          {SYMPTOM_CATEGORIES.map((symptom) => (
+          {SYMPTOM_CATEGORIES.map((symptom, index) => (
             <SymptomIcon 
               key={symptom.id}
               label={symptom.label}
               iconName={symptom.icon}
+              delay={100 + (index * 40)} // Staggered entry
               onPress={() => router.push('/symptom-check/questionnaire')}
             />
           ))}
         </View>
 
-        <View style={styles.footer}>
-          <Button 
-            title="Call Emergency Services (112)" 
-            variant="outline" 
-            style={styles.emergencyButton}
-            onPress={() => {}} // Integration for dialer
-          />
-        </View>
+        <MotionView delay={500}>
+          <View style={styles.footer}>
+            <Button 
+              title="Call Emergency Services (112)" 
+              variant="outline" 
+              style={styles.emergencyButton}
+              onPress={() => {}} // Integration for dialer
+            />
+          </View>
+        </MotionView>
       </ScrollView>
     </View>
   );

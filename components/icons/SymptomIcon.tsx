@@ -1,6 +1,8 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { COLORS, RADIUS, SPACING } from '@/constants/colors';
+import { TACTILE } from '@/constants/motion';
+import { MotionView } from '@/components/ui/MotionView';
 import * as LucideIcons from 'lucide-react-native';
 
 interface SymptomIconProps {
@@ -8,44 +10,52 @@ interface SymptomIconProps {
   iconName: string;
   onPress?: () => void;
   selected?: boolean;
+  delay?: number;
 }
 
-export function SymptomIcon({ label, iconName, onPress, selected }: SymptomIconProps) {
+export function SymptomIcon({ label, iconName, onPress, selected, delay = 0 }: SymptomIconProps) {
   // Dynamically resolve icon from lucide-react-native
   const IconComponent = (LucideIcons as any)[iconName] || LucideIcons.Activity;
 
   return (
-    <Pressable 
-      onPress={onPress}
-      accessibilityLabel={`${label} — tap to select`}
-      accessibilityRole="button"
-      style={({ pressed }) => [
-        styles.container,
-        selected && styles.selected,
-        pressed && styles.pressed
-      ]}
-    >
-      <View style={[styles.iconContainer, selected && styles.selectedIconContainer]}>
-        <IconComponent 
-          size={32} 
-          strokeWidth={2.5} 
-          color={selected ? '#FFFFFF' : COLORS.primary} 
-        />
-      </View>
-      <Text style={[styles.label, selected && styles.selectedLabel]}>{label}</Text>
-    </Pressable>
+    <MotionView delay={delay} style={styles.motionWrapper}>
+      <Pressable 
+        onPress={onPress}
+        accessibilityLabel={`${label} — tap to select`}
+        accessibilityRole="button"
+        style={({ pressed }) => [
+          styles.container,
+          selected && styles.selected,
+          pressed && { 
+            opacity: 0.7, 
+            transform: [{ scale: TACTILE.activeScale }] 
+          }
+        ]}
+      >
+        <View style={[styles.iconContainer, selected && styles.selectedIconContainer]}>
+          <IconComponent 
+            size={32} 
+            strokeWidth={2.5} 
+            color={selected ? '#FFFFFF' : COLORS.primary} 
+          />
+        </View>
+        <Text style={[styles.label, selected && styles.selectedLabel]}>{label}</Text>
+      </Pressable>
+    </MotionView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  motionWrapper: {
     width: '30%', // Grid-friendly
+    marginBottom: SPACING.md,
+  },
+  container: {
     aspectRatio: 1,
     backgroundColor: COLORS.surfaceElevated,
     borderRadius: RADIUS.xl,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: SPACING.md,
     // Soft shadow
     shadowColor: COLORS.textPrimary,
     shadowOffset: { width: 0, height: 2 },
@@ -54,14 +64,11 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 2,
     borderColor: 'transparent',
+    width: '100%',
   },
   selected: {
     borderColor: COLORS.primary,
     backgroundColor: COLORS.state.monitor.surface,
-  },
-  pressed: {
-    transform: [{ scale: 0.96 }],
-    opacity: 0.9,
   },
   iconContainer: {
     marginBottom: SPACING.sm,

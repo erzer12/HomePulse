@@ -3,7 +3,9 @@ import { ScrollView, StyleSheet, Text, View, FlatList } from 'react-native';
 import { Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS } from '@/constants/colors';
+import { DURATION } from '@/constants/motion';
 import { Card } from '@/components/ui/Card';
+import { MotionView } from '@/components/ui/MotionView';
 import { TrendingUp, TrendingDown, Minus } from 'lucide-react-native';
 
 const MOCK_HISTORY = [
@@ -43,7 +45,7 @@ export default function HistoryScreen() {
   const insets = useSafeAreaInsets();
   
   const renderItem = ({ item, index }: { item: typeof MOCK_HISTORY[0], index: number }) => (
-    <View style={styles.entryContainer}>
+    <MotionView delay={index * DURATION.stagger} style={styles.entryContainer}>
       {/* Vertical Timeline Line */}
       <View style={styles.timelineLineContainer}>
         <View style={[styles.timelineLine, index === 0 && styles.timelineLineTop]} />
@@ -80,7 +82,7 @@ export default function HistoryScreen() {
           </Text>
         )}
       </Card>
-    </View>
+    </MotionView>
   );
 
   return (
@@ -101,16 +103,18 @@ export default function HistoryScreen() {
         keyExtractor={item => item.id}
         contentContainerStyle={styles.listContent}
         ListHeaderComponent={() => (
-          <Card style={styles.summaryCard}>
-            <Text style={styles.summaryTitle}>Active Case Summary</Text>
-            <Text style={styles.summaryDetail}>Started 2 days ago</Text>
-            <View style={styles.summaryStateRow}>
-              <Text style={styles.summaryStateLabel}>Current State:</Text>
-              <Text style={[styles.summaryStateValue, { color: COLORS.state.care.text }]}>
-                Guided Home Care (Level 2)
-              </Text>
-            </View>
-          </Card>
+          <MotionView>
+            <Card style={styles.summaryCard}>
+              <Text style={styles.summaryTitle}>Active Case Summary</Text>
+              <Text style={styles.summaryDetail}>Started 2 days ago</Text>
+              <View style={styles.summaryStateRow}>
+                <Text style={styles.summaryStateLabel}>Current State:</Text>
+                <Text style={[styles.summaryStateValue, { color: COLORS.state.care.text }]}>
+                  Guided Home Care (Level 2)
+                </Text>
+              </View>
+            </Card>
+          </MotionView>
         )}
       />
     </View>

@@ -1,16 +1,13 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View, Pressable, LayoutAnimation, Platform, UIManager } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, Pressable, LayoutAnimation, Platform } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, RADIUS } from '@/constants/colors';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ChevronDown, ChevronUp, CircleDot, Activity, Settings, UserPlus, Clock } from 'lucide-react-native';
-
-// Enable layout animation for Android
-if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
-  UIManager.setLayoutAnimationEnabledExperimental(true);
-}
+import { MotionView } from '@/components/ui/MotionView';
+import { DURATION } from '@/constants/motion';
+import { ChevronDown, ChevronUp, CircleDot, Activity, Clock } from 'lucide-react-native';
 
 const MOCK_PROFILES = [
   {
@@ -54,73 +51,78 @@ export default function ProfilesScreen() {
         </View>
 
         <View style={styles.list}>
-          {MOCK_PROFILES.map((profile) => {
+          {MOCK_PROFILES.map((profile, index) => {
             const isExpanded = expandedId === profile.id;
             
             return (
-              <Card key={profile.id} variant="elevated" style={styles.profileCard}>
-                <Pressable 
-                  style={styles.profilePressable}
-                  onPress={() => toggleExpand(profile.id)}
-                >
-                  <View style={styles.avatar}>
-                    <Text style={styles.avatarText}>{profile.name[0]}</Text>
-                    {profile.activeCase && (
-                      <View style={styles.activeIndicator}>
-                        <CircleDot size={12} color={COLORS.state.care.primary} fill={COLORS.state.care.primary} />
-                      </View>
+              <MotionView 
+                key={profile.id} 
+                delay={index * DURATION.stagger}
+              >
+                <Card variant="elevated" style={styles.profileCard}>
+                  <Pressable 
+                    style={styles.profilePressable}
+                    onPress={() => toggleExpand(profile.id)}
+                  >
+                    <View style={styles.avatar}>
+                      <Text style={styles.avatarText}>{profile.name[0]}</Text>
+                      {profile.activeCase && (
+                        <View style={styles.activeIndicator}>
+                          <CircleDot size={12} color={COLORS.state.care.primary} fill={COLORS.state.care.primary} />
+                        </View>
+                      )}
+                    </View>
+
+                    <View style={styles.info}>
+                      <Text style={styles.name}>{profile.name}</Text>
+                      <Text style={styles.details}>{profile.age}</Text>
+                    </View>
+
+                    {isExpanded ? (
+                      <ChevronUp size={20} color={COLORS.primary} />
+                    ) : (
+                      <ChevronDown size={20} color={COLORS.textSecondary} />
                     )}
-                  </View>
+                  </Pressable>
 
-                  <View style={styles.info}>
-                    <Text style={styles.name}>{profile.name}</Text>
-                    <Text style={styles.details}>{profile.age}</Text>
-                  </View>
+                  {isExpanded && (
+                    <View style={styles.expandedContent}>
+                      <View style={styles.divider} />
+                      
+                      <View style={styles.metaRow}>
+                        <View style={styles.metaItem}>
+                          <Activity size={16} color={COLORS.textSecondary} />
+                          <Text style={styles.metaText}>
+                            {profile.conditions.length > 0 && profile.conditions[0] !== 'None' 
+                              ? profile.conditions.join(', ') 
+                              : 'No chronic conditions'}
+                          </Text>
+                        </View>
+                        <View style={styles.metaItem}>
+                          <Clock size={16} color={COLORS.textSecondary} />
+                          <Text style={styles.metaText}>Last check: {profile.lastCheck}</Text>
+                        </View>
+                      </View>
 
-                  {isExpanded ? (
-                    <ChevronUp size={20} color={COLORS.primary} />
-                  ) : (
-                    <ChevronDown size={20} color={COLORS.textSecondary} />
+                      <View style={styles.actionRow}>
+                        <Button 
+                          title="Start Check" 
+                          size="normal"
+                          onPress={() => router.push('/symptom-check/select-symptom')}
+                          style={styles.actionButton}
+                        />
+                        <Button 
+                          title="Edit Profile" 
+                          variant="outline"
+                          size="normal"
+                          onPress={() => {}}
+                          style={styles.actionButton}
+                        />
+                      </View>
+                    </View>
                   )}
-                </Pressable>
-
-                {isExpanded && (
-                  <View style={styles.expandedContent}>
-                    <View style={styles.divider} />
-                    
-                    <View style={styles.metaRow}>
-                      <View style={styles.metaItem}>
-                        <Activity size={16} color={COLORS.textSecondary} />
-                        <Text style={styles.metaText}>
-                          {profile.conditions.length > 0 && profile.conditions[0] !== 'None' 
-                            ? profile.conditions.join(', ') 
-                            : 'No chronic conditions'}
-                        </Text>
-                      </View>
-                      <View style={styles.metaItem}>
-                        <Clock size={16} color={COLORS.textSecondary} />
-                        <Text style={styles.metaText}>Last check: {profile.lastCheck}</Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.actionRow}>
-                      <Button 
-                        title="Start Check" 
-                        size="normal"
-                        onPress={() => router.push('/symptom-check/select-symptom')}
-                        style={styles.actionButton}
-                      />
-                      <Button 
-                        title="Edit Profile" 
-                        variant="outline"
-                        size="normal"
-                        onPress={() => {}}
-                        style={styles.actionButton}
-                      />
-                    </View>
-                  </View>
-                )}
-              </Card>
+                </Card>
+              </MotionView>
             );
           })}
         </View>
