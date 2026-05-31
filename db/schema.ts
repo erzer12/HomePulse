@@ -1,7 +1,7 @@
-import * as SQLite from 'expo-sqlite';
+import type * as SQLite from "expo-sqlite";
 
 export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
-  await db.execAsync(`
+	await db.execAsync(`
     PRAGMA journal_mode = WAL;
 
     CREATE TABLE IF NOT EXISTS patients (

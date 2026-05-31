@@ -1,33 +1,33 @@
 {
-  "version": "1.0.0",
-  "signature": "unsigned-dev",
-  "rules": [
-    {
-      "id": "baseline-fever",
-      "conditions": {
-        "category": "fever"
-      },
-      "output_state": 1,
-      "explanation_key": "baseline_fever_observe"
-    }
-  ],
-  "red_flags": [
-    {
-      "id": "spo2-critical",
-      "condition": {
-        "spo2_percent_lt": 94
-      },
-      "reason_key": "spo2_critical"
-    }
-  ],
-  "household_modifiers": [
-    {
-      "id": "no-overnight-caregiver-vulnerable-age",
-      "condition": {
-        "overnight_caregiver": false
-      },
-      "state_adjustment": 1,
-      "reason_key": "no_overnight_caregiver"
-    }
-  ]
+	"version": "1.0.0",
+	"signature": "unsigned-dev",
+	"rules": [
+		{
+			"id": "baseline-fever",
+			"conditions": {
+				"category": "fever"
+			},
+			"output_state": 1,
+			"explanation_key": "baseline_fever_observe"
+		}
+	],
+	"red_flags": [
+		{
+			"id": "spo2-critical",
+			"condition": {
+				"spo2_percent_lt": 94
+			},
+			"reason_key": "spo2_critical"
+		}
+	],
+	"household_modifiers": [
+		{
+			"id": "no-overnight-caregiver-vulnerable-age",
+			"condition": {
+				"overnight_caregiver": false
+			},
+			"state_adjustment": 1,
+			"reason_key": "no_overnight_caregiver"
+		}
+	]
 }
