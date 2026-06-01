@@ -90,7 +90,10 @@ export default function HistoryScreen() {
 									<TrendingUp size={16} color={COLORS.state.urgent.primary} />
 								)}
 								{vital.trend === "down" && (
-									<TrendingDown size={16} color={COLORS.state.monitor.primary} />
+									<TrendingDown
+										size={16}
+										color={COLORS.state.monitor.primary}
+									/>
 								)}
 								{vital.trend === "stable" && (
 									<Minus size={16} color={COLORS.textSecondary} />

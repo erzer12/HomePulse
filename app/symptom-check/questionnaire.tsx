@@ -78,7 +78,9 @@ export default function QuestionnaireScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
 
-	const [answers, setAnswers] = useState<Record<string, string | number | boolean>>({});
+	const [answers, setAnswers] = useState<
+		Record<string, string | number | boolean>
+	>({});
 	const [inputValue, setInputValue] = useState("");
 
 	// Animation state

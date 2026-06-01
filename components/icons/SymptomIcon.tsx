@@ -20,7 +20,9 @@ export function SymptomIcon({
 	delay = 0,
 }: SymptomIconProps) {
 	// Dynamically resolve icon from lucide-react-native
-	const IconComponent = (LucideIcons as Record<string, unknown>)[iconName] as React.ElementType || LucideIcons.Activity;
+	const IconComponent =
+		((LucideIcons as Record<string, unknown>)[iconName] as React.ElementType) ||
+		LucideIcons.Activity;
 
 	return (
 		<MotionView delay={delay} style={styles.motionWrapper}>
