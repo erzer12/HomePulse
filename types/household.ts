@@ -1,1 +1,1 @@
-export type { HouseholdReadiness } from './triage';
+export type { HouseholdReadiness } from "./triage";

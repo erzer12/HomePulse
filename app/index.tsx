@@ -1,53 +1,127 @@
-import { router, Link } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCaseStore } from '@/store/case';
-import { usePatientStore } from '@/store/patient';
+import { useRouter } from "expo-router";
+import { HeartPulse } from "lucide-react-native";
+import { StyleSheet, Text, View } from "react-native";
+import { Button } from "@/components/ui/Button";
+import { COLORS, SPACING } from "@/constants/colors";
 
 export default function IndexScreen() {
-  const patientCount = usePatientStore((state) => state.profiles.length);
-  const activeCase = useCaseStore((state) => state.activeCase);
+	const router = useRouter();
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.kicker}>HomePulse</Text>
-      <Text style={styles.title}>Welcome</Text>
-      <Text style={styles.subtitle}>Offline-first family health triage support</Text>
+	return (
+		<View style={styles.container}>
+			<View style={styles.content}>
+				<View style={styles.logoContainer}>
+					<View style={styles.iconCircle}>
+						<HeartPulse size={60} color={COLORS.primary} strokeWidth={2.5} />
+					</View>
+					<Text style={styles.title}>HomePulse</Text>
+					<Text style={styles.subtitle}>
+						Guided reassurance for every home.
+					</Text>
+				</View>
 
-      <View style={styles.card}>
-        <Text style={styles.cardLabel}>Setup status</Text>
-        <Text style={styles.cardValue}>{patientCount > 0 ? `${patientCount} patient profile${patientCount === 1 ? '' : 's'} ready` : 'No patient profiles yet'}</Text>
-        <Text style={styles.cardHint}>{activeCase ? 'An active case is already running.' : 'Start by adding a profile or open the dashboard.'}</Text>
-      </View>
+				<View style={styles.illustrationPlaceholder}>
+					{/* In a real app, this would be a high-quality SVG or PNG illustration */}
+					<View style={styles.circleLarge} />
+					<View style={styles.circleSmall} />
+				</View>
 
-      <View style={styles.links}>
-        <Pressable style={styles.primaryButton} onPress={() => router.push('/onboarding/create-profile')}>
-          <Text style={styles.primaryButtonText}>Add Patient Profile</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => router.push('/(tabs)/home')}>
-          <Text style={styles.secondaryButtonText}>Open Dashboard</Text>
-        </Pressable>
-        <Link href='/symptom-check/select-symptom' style={styles.textLink}>
-          Start Symptom Check
-        </Link>
-      </View>
-    </SafeAreaView>
-  );
+				<View style={styles.footer}>
+					<Text style={styles.onboardingText}>
+						Prepare your household for safe, confident health monitoring.
+					</Text>
+					<Button
+						title="Get Started"
+						onPress={() => router.push("/onboarding/create-profile")}
+						style={styles.mainButton}
+					/>
+					<Button
+						title="Already have a profile? Log in"
+						variant="outline"
+						onPress={() => router.replace("/(tabs)/home")}
+					/>
+				</View>
+			</View>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 24, backgroundColor: '#F8FAFC' },
-  kicker: { fontSize: 12, fontWeight: '700', color: '#1B6CA8', textTransform: 'uppercase', letterSpacing: 1.2, marginBottom: 8 },
-  title: { fontSize: 30, fontWeight: '700', marginBottom: 8, color: '#1F2937' },
-  subtitle: { fontSize: 15, color: '#475569', marginBottom: 20 },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderColor: '#E5E7EB' },
-  cardLabel: { fontSize: 12, color: '#6B7280', textTransform: 'uppercase', marginBottom: 6, fontWeight: '600' },
-  cardValue: { fontSize: 18, color: '#1F2937', fontWeight: '700', marginBottom: 4 },
-  cardHint: { fontSize: 14, color: '#6B7280' },
-  links: { gap: 12 },
-  primaryButton: { backgroundColor: '#1B6CA8', paddingVertical: 14, borderRadius: 12 },
-  primaryButtonText: { color: '#FFFFFF', textAlign: 'center', fontWeight: '700', fontSize: 16 },
-  secondaryButton: { backgroundColor: '#FFFFFF', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#1B6CA8' },
-  secondaryButtonText: { color: '#1B6CA8', textAlign: 'center', fontWeight: '700', fontSize: 16 },
-  textLink: { color: '#1B6CA8', textAlign: 'center', fontWeight: '600', fontSize: 15, paddingVertical: 8 },
+	container: {
+		flex: 1,
+		backgroundColor: COLORS.background,
+	},
+	content: {
+		flex: 1,
+		padding: SPACING.screenEdge,
+		justifyContent: "space-between",
+		paddingTop: 100,
+		paddingBottom: 40,
+	},
+	logoContainer: {
+		alignItems: "center",
+	},
+	iconCircle: {
+		width: 120,
+		height: 120,
+		borderRadius: 60,
+		backgroundColor: COLORS.surfaceElevated,
+		justifyContent: "center",
+		alignItems: "center",
+		marginBottom: SPACING.xl,
+		// Soft shadow
+		shadowColor: COLORS.primary,
+		shadowOffset: { width: 0, height: 10 },
+		shadowOpacity: 0.1,
+		shadowRadius: 20,
+		elevation: 10,
+	},
+	title: {
+		fontSize: 40,
+		fontWeight: "900",
+		color: COLORS.textPrimary,
+		letterSpacing: -1,
+	},
+	subtitle: {
+		fontSize: 18,
+		color: COLORS.textSecondary,
+		marginTop: 8,
+		fontWeight: "500",
+	},
+	illustrationPlaceholder: {
+		height: 200,
+		justifyContent: "center",
+		alignItems: "center",
+	},
+	circleLarge: {
+		width: 160,
+		height: 160,
+		borderRadius: 80,
+		backgroundColor: COLORS.state.monitor.surface,
+		opacity: 0.5,
+	},
+	circleSmall: {
+		position: "absolute",
+		width: 80,
+		height: 80,
+		borderRadius: 40,
+		backgroundColor: COLORS.state.care.surface,
+		bottom: 20,
+		right: "25%",
+		opacity: 0.8,
+	},
+	footer: {
+		width: "100%",
+	},
+	onboardingText: {
+		fontSize: 16,
+		color: COLORS.textSecondary,
+		textAlign: "center",
+		lineHeight: 22,
+		marginBottom: SPACING.xxl,
+		paddingHorizontal: SPACING.xl,
+	},
+	mainButton: {
+		marginBottom: SPACING.md,
+	},
 });

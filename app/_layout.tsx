@@ -1,5 +1,12 @@
-import { Stack } from 'expo-router';
+import { Stack } from "expo-router";
+import { SafeAreaProvider } from "react-native-safe-area-context";
+import { NetworkBanner } from "@/components/ui/NetworkBanner";
 
 export default function RootLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+	return (
+		<SafeAreaProvider>
+			<NetworkBanner />
+			<Stack screenOptions={{ headerShown: false }} />
+		</SafeAreaProvider>
+	);
 }

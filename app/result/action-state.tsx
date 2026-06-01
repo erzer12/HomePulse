@@ -1,38 +1,170 @@
-import { router } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Stack, useRouter } from "expo-router";
+import { CheckCircle2, ChevronRight, Clock, Share2 } from "lucide-react-native";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActionStateCard } from "@/components/triage/ActionStateCard";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+
+// Mock data for State 2 (Guided Home Care)
+const MOCK_RESULT = {
+	state: {
+		level: 2,
+		label: "Guided Home Care",
+		explanation:
+			"Rohan's symptoms require active management at home. Follow the care steps below and recheck in 4 hours.",
+	},
+	nextSteps: [
+		{
+			id: "1",
+			title: "Administer Paracetamol (as per weight)",
+			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
+		},
+		{
+			id: "2",
+			title: "Ensure frequent sips of ORS or water",
+			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
+		},
+		{
+			id: "3",
+			title: "Keep room well-ventilated and cool",
+			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
+		},
+	],
+	recheckInterval: "4 hours",
+};
 
 export default function ActionStateScreen() {
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.heading}>Action State Result</Text>
-      <View style={styles.card}>
-        <Text style={styles.cardTitle}>State 2 - Guided Home Care</Text>
-        <Text style={styles.cardText}>This is a placeholder result screen connected to the rest of the flow.</Text>
-      </View>
-      <Pressable style={styles.primaryButton} onPress={() => router.push('/result/explanation')}>
-        <Text style={styles.primaryButtonText}>View Explanation</Text>
-      </Pressable>
-      <Pressable style={styles.secondaryButton} onPress={() => router.push('/recheck/check-in')}>
-        <Text style={styles.secondaryButtonText}>Do Recheck Now</Text>
-      </Pressable>
-      <Pressable style={styles.secondaryButton} onPress={() => router.push('/caregiver-share/share-link')}>
-        <Text style={styles.secondaryButtonText}>Share with Caregiver</Text>
-      </Pressable>
-      <Pressable style={styles.secondaryButton} onPress={() => router.replace('/(tabs)/home')}>
-        <Text style={styles.secondaryButtonText}>Back to Home</Text>
-      </Pressable>
-    </ScrollView>
-  );
+	const router = useRouter();
+
+	return (
+		<View style={styles.container}>
+			<Stack.Screen
+				options={{
+					title: "Care Plan",
+					headerStyle: { backgroundColor: COLORS.background },
+					headerShadowVisible: false,
+					headerRight: () => (
+						<Share2
+							size={24}
+							color={COLORS.primary}
+							style={{ marginRight: SPACING.md }}
+						/>
+					),
+				}}
+			/>
+
+			<ScrollView contentContainerStyle={styles.scrollContent}>
+				<ActionStateCard state={MOCK_RESULT.state} />
+
+				<View style={styles.recheckCard}>
+					<Clock size={20} color={COLORS.state.care.text} />
+					<Text style={styles.recheckText}>
+						Recheck condition in{" "}
+						<Text style={styles.bold}>{MOCK_RESULT.recheckInterval}</Text>
+					</Text>
+				</View>
+
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Immediate Care Steps</Text>
+					{MOCK_RESULT.nextSteps.map((step) => (
+						<Card key={step.id} style={styles.stepCard}>
+							<View style={styles.stepIcon}>{step.icon}</View>
+							<Text style={styles.stepTitle}>{step.title}</Text>
+						</Card>
+					))}
+				</View>
+
+				<Pressable
+					style={styles.detailsButton}
+					onPress={() => router.push("/result/explanation")}
+				>
+					<Text style={styles.detailsText}>Why this recommendation?</Text>
+					<ChevronRight size={20} color={COLORS.textSecondary} />
+				</Pressable>
+
+				<View style={styles.footer}>
+					<Button
+						title="Go to Home"
+						variant="primary"
+						onPress={() => router.replace("/(tabs)/home")}
+					/>
+				</View>
+			</ScrollView>
+		</View>
+	);
 }
 
+// Re-defining Pressable style for inline component
+import { Pressable } from "react-native";
+
 const styles = StyleSheet.create({
-  container: { padding: 20, gap: 12, flexGrow: 1, backgroundColor: '#F9FAFB' },
-  heading: { fontSize: 28, fontWeight: '700', color: '#1F2937' },
-  card: { backgroundColor: '#FFFFFF', borderRadius: 16, padding: 16, borderWidth: 1, borderColor: '#E5E7EB', gap: 8 },
-  cardTitle: { fontSize: 18, fontWeight: '700', color: '#1F2937' },
-  cardText: { fontSize: 14, color: '#374151' },
-  primaryButton: { backgroundColor: '#1B6CA8', paddingVertical: 14, borderRadius: 12, marginTop: 8 },
-  primaryButtonText: { color: '#FFFFFF', textAlign: 'center', fontWeight: '700' },
-  secondaryButton: { backgroundColor: '#FFFFFF', paddingVertical: 14, borderRadius: 12, borderWidth: 1, borderColor: '#1B6CA8' },
-  secondaryButtonText: { color: '#1B6CA8', textAlign: 'center', fontWeight: '700' },
+	container: {
+		flex: 1,
+		backgroundColor: COLORS.background,
+	},
+	scrollContent: {
+		padding: SPACING.screenEdge,
+		paddingBottom: 40,
+	},
+	recheckCard: {
+		flexDirection: "row",
+		alignItems: "center",
+		backgroundColor: COLORS.state.care.surface,
+		padding: SPACING.lg,
+		borderRadius: RADIUS.lg,
+		marginTop: SPACING.lg,
+		marginBottom: SPACING.sectionGap,
+	},
+	recheckText: {
+		fontSize: 16,
+		color: COLORS.state.care.text,
+		marginLeft: SPACING.md,
+	},
+	bold: {
+		fontWeight: "700",
+	},
+	section: {
+		marginBottom: SPACING.sectionGap,
+	},
+	sectionTitle: {
+		fontSize: 20,
+		fontWeight: "700",
+		color: COLORS.textPrimary,
+		marginBottom: SPACING.lg,
+	},
+	stepCard: {
+		flexDirection: "row",
+		alignItems: "center",
+		marginBottom: SPACING.md,
+		padding: SPACING.lg,
+		backgroundColor: COLORS.surfaceElevated,
+	},
+	stepIcon: {
+		marginRight: SPACING.md,
+	},
+	stepTitle: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: COLORS.textPrimary,
+		flex: 1,
+	},
+	detailsButton: {
+		flexDirection: "row",
+		alignItems: "center",
+		justifyContent: "space-between",
+		paddingVertical: SPACING.xl,
+		borderTopWidth: 1,
+		borderBottomWidth: 1,
+		borderColor: COLORS.border,
+		marginBottom: SPACING.sectionGap,
+	},
+	detailsText: {
+		fontSize: 16,
+		fontWeight: "600",
+		color: COLORS.textSecondary,
+	},
+	footer: {
+		marginTop: "auto",
+	},
 });

@@ -1,22 +1,111 @@
-import { router } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Stack } from "expo-router";
+import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TaskList } from "@/components/caregiver/TaskList";
+import { ActionStateCard } from "@/components/triage/ActionStateCard";
+import { Card } from "@/components/ui/Card";
+import { COLORS, SPACING } from "@/constants/colors";
+
+// Mock data based on the Google Stitch design
+const MOCK_STATE = {
+	level: 2,
+	label: "Guided Home Care",
+	explanation:
+		"Symptoms require active management. Follow the care instructions below.",
+};
+
+const MOCK_TASKS = [
+	{ id: "1", title: "Check temperature in 30 minutes", done: false },
+	{
+		id: "2",
+		title: "Offer fluids (ORS or water) every 20 minutes",
+		done: false,
+	},
+	{ id: "3", title: "Prepare transport just in case", done: false },
+];
 
 export default function SharedViewScreen() {
-  return (
-    <View style={styles.container}>
-      <Text style={styles.heading}>Shared Read-Only Case View</Text>
-      <Text style={styles.text}>A caregiver can view the shared case here.</Text>
-      <Pressable style={styles.primaryButton} onPress={() => router.replace('/(tabs)/home')}>
-        <Text style={styles.primaryButtonText}>Back to Home</Text>
-      </Pressable>
-    </View>
-  );
+	const insets = useSafeAreaInsets();
+
+	return (
+		<View style={[styles.container, { paddingTop: insets.top }]}>
+			<Stack.Screen
+				options={{
+					headerShown: true,
+					title: "Shared Monitoring View",
+					headerStyle: { backgroundColor: COLORS.background },
+					headerTitleStyle: { color: COLORS.textPrimary, fontWeight: "700" },
+				}}
+			/>
+
+			<ScrollView contentContainerStyle={styles.scrollContent}>
+				{/* Patient Summary Card */}
+				<Card variant="elevated" style={styles.summaryCard}>
+					<Text style={styles.summaryLabel}>Patient: Child</Text>
+					<Text style={styles.summaryTimestamp}>Last updated: 12 mins ago</Text>
+				</Card>
+
+				<View style={styles.section}>
+					<ActionStateCard state={MOCK_STATE} />
+				</View>
+
+				<View style={styles.section}>
+					<Text style={styles.sectionTitle}>Assigned Tasks</Text>
+					<TaskList tasks={MOCK_TASKS} />
+				</View>
+
+				<View style={styles.footer}>
+					<Text style={styles.disclaimer}>
+						This is a shared view. All medical decisions remain with the primary
+						caregiver.
+					</Text>
+				</View>
+			</ScrollView>
+		</View>
+	);
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#F9FAFB', gap: 12 },
-  heading: { fontSize: 28, fontWeight: '700', color: '#1F2937' },
-  text: { fontSize: 15, color: '#6B7280' },
-  primaryButton: { backgroundColor: '#1B6CA8', paddingVertical: 14, borderRadius: 12, marginTop: 8 },
-  primaryButtonText: { color: '#FFFFFF', textAlign: 'center', fontWeight: '700' },
+	container: {
+		flex: 1,
+		backgroundColor: COLORS.background,
+	},
+	scrollContent: {
+		padding: SPACING.screenEdge,
+		paddingBottom: 40,
+	},
+	summaryCard: {
+		marginBottom: SPACING.sectionGap,
+	},
+	summaryLabel: {
+		fontSize: 18,
+		fontWeight: "700",
+		color: COLORS.textPrimary,
+		marginBottom: 4,
+	},
+	summaryTimestamp: {
+		fontSize: 14,
+		color: COLORS.textSecondary,
+	},
+	section: {
+		marginBottom: SPACING.sectionGap,
+	},
+	sectionTitle: {
+		fontSize: 22,
+		fontWeight: "700",
+		color: COLORS.textPrimary,
+		marginBottom: SPACING.lg,
+	},
+	footer: {
+		marginTop: SPACING.xl,
+		paddingTop: SPACING.xl,
+		borderTopWidth: 1,
+		borderTopColor: COLORS.border,
+	},
+	disclaimer: {
+		fontSize: 14,
+		color: COLORS.textSecondary,
+		textAlign: "center",
+		lineHeight: 20,
+	},
 });

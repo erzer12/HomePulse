@@ -1,3 +1,3 @@
-export * from './patient';
-export * from './case';
-export * from './triage';
+export * from "./case";
+export * from "./patient";
+export * from "./triage";

@@ -1,14 +1,87 @@
-import { Pressable, Text } from 'react-native';
+import {
+	Pressable,
+	StyleSheet,
+	Text,
+	type TextStyle,
+	type ViewStyle,
+} from "react-native";
+import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { TACTILE } from "@/constants/motion";
 
 interface ButtonProps {
-  title: string;
-  onPress?: () => void;
+	title: string;
+	onPress?: () => void;
+	variant?: "primary" | "secondary" | "urgent" | "outline";
+	size?: "normal" | "large";
+	fullWidth?: boolean;
+	style?: ViewStyle;
 }
 
-export function Button({ title, onPress }: ButtonProps) {
-  return (
-    <Pressable onPress={onPress} style={{ backgroundColor: '#1B6CA8', padding: 12, borderRadius: 8 }}>
-      <Text style={{ color: '#FFFFFF', textAlign: 'center', fontWeight: '600' }}>{title}</Text>
-    </Pressable>
-  );
+export function Button({
+	title,
+	onPress,
+	variant = "primary",
+	size = "large",
+	fullWidth = true,
+	style,
+}: ButtonProps) {
+	const getVariantStyles = () => {
+		switch (variant) {
+			case "secondary":
+				return { backgroundColor: COLORS.state.care.primary };
+			case "urgent":
+				return { backgroundColor: COLORS.state.urgent.primary };
+			case "outline":
+				return {
+					backgroundColor: "transparent",
+					borderWidth: 2,
+					borderColor: COLORS.border,
+				};
+			default:
+				return { backgroundColor: COLORS.primary };
+		}
+	};
+
+	const getTextStyle = (): TextStyle => ({
+		color: variant === "outline" ? COLORS.textPrimary : "#FFFFFF",
+		fontSize: size === "large" ? 18 : 16,
+		fontWeight: "600",
+		textAlign: "center",
+	});
+
+	return (
+		<Pressable
+			onPress={onPress}
+			accessibilityLabel={title}
+			accessibilityRole="button"
+			style={({ pressed }) => [
+				styles.base,
+				getVariantStyles(),
+				size === "large" && styles.large,
+				fullWidth && styles.fullWidth,
+				pressed && {
+					opacity: 0.7,
+					transform: [{ scale: TACTILE.activeScale }],
+				},
+				style,
+			]}
+		>
+			<Text style={getTextStyle()}>{title}</Text>
+		</Pressable>
+	);
 }
+
+const styles = StyleSheet.create({
+	base: {
+		borderRadius: RADIUS.xl,
+		justifyContent: "center",
+		alignItems: "center",
+		paddingHorizontal: SPACING.xl,
+	},
+	large: {
+		height: 60, // Tappable 60px height as per design system
+	},
+	fullWidth: {
+		width: "100%",
+	},
+});
