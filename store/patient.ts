@@ -1,17 +1,113 @@
 import { create } from "zustand";
-import type { Patient } from "@/types/patient";
+import type { SQLiteDatabase } from "../db/connection";
+import { getDb } from "../db/connection";
+import {
+	createPatient as dbCreatePatient,
+	deletePatient as dbDeletePatient,
+	getPatient as dbGetPatient,
+	updatePatient as dbUpdatePatient,
+	getPatients,
+} from "../db/queries/patients";
+import type {
+	Patient,
+	PatientInput,
+	PatientUpdateInput,
+} from "../types/patient";
 
 interface PatientState {
 	profiles: Patient[];
-	setProfiles: (profiles: Patient[]) => void;
-	addProfile: (profile: Patient) => void;
+	loading: boolean;
+	error: string | null;
+	loadPatients: () => Promise<void>;
+	createPatient: (data: PatientInput) => Promise<Patient>;
+	getPatient: (id: string) => Promise<Patient | null>;
+	updatePatient: (id: string, data: PatientUpdateInput) => Promise<void>;
+	deletePatient: (id: string) => Promise<void>;
 }
 
-// Patient records are persisted in SQLite (see db/schema.ts + db/queries/patients.ts).
-// This zustand slice is an in-memory projection for UI state.
-export const usePatientStore = create<PatientState>((set) => ({
+export const usePatientStore = create<PatientState>((set, _get) => ({
 	profiles: [],
-	setProfiles: (profiles) => set({ profiles }),
-	addProfile: (profile) =>
-		set((state) => ({ profiles: [...state.profiles, profile] })),
+	loading: false,
+	error: null,
+	loadPatients: async () => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			const rows = await getPatients(db as unknown as SQLiteDatabase);
+			set({ profiles: rows, loading: false });
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+		}
+	},
+	createPatient: async (data) => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			const p = await dbCreatePatient(
+				db as unknown as SQLiteDatabase,
+				data as PatientInput,
+			);
+			set((s) => ({ profiles: [...s.profiles, p], loading: false }));
+			return p;
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+			throw e;
+		}
+	},
+	getPatient: async (id) => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			const p = await dbGetPatient(db as unknown as SQLiteDatabase, id);
+			set({ loading: false });
+			return p;
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+			return null;
+		}
+	},
+	updatePatient: async (id, data) => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			await dbUpdatePatient(
+				db as unknown as SQLiteDatabase,
+				id,
+				data as PatientUpdateInput,
+			);
+			// reload profiles
+			const rows = await getPatients(db as unknown as SQLiteDatabase);
+			set({ profiles: rows, loading: false });
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+			throw e;
+		}
+	},
+	deletePatient: async (id) => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			await dbDeletePatient(db as unknown as SQLiteDatabase, id);
+			const rows = await getPatients(db as unknown as SQLiteDatabase);
+			set({ profiles: rows, loading: false });
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+			throw e;
+		}
+	},
 }));

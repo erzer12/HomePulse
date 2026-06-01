@@ -60,6 +60,8 @@ export interface TriageOutput {
 	red_flag_triggered: boolean;
 	red_flag_reason?: string;
 	household_modifiers_applied: string[];
+	// In case of engine/internal errors include a safe, engineering-facing message.
+	error?: string;
 }
 
 export interface RuleConfig {

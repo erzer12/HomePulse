@@ -18,4 +18,5 @@ const defaultReadiness: HouseholdReadiness = {
 export const useHouseholdStore = create<HouseholdState>((set) => ({
 	readiness: defaultReadiness,
 	setReadiness: (readiness) => set({ readiness }),
+	resetToDefaults: () => set({ readiness: defaultReadiness }),
 }));
