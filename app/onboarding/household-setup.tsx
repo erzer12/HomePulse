@@ -59,7 +59,8 @@ export default function HouseholdSetupScreen() {
 	const [distance, setDistance] = useState("1.5");
 
 	const handleComplete = async () => {
-		if (!patientId) {
+		const id = Array.isArray(patientId) ? patientId[0] : patientId;
+		if (!id) {
 			Alert.alert("Error", "No patient profile found. Please restart the setup.");
 			router.replace("/onboarding/create-profile");
 			return;
@@ -68,7 +69,7 @@ export default function HouseholdSetupScreen() {
 		setLoading(true);
 		try {
 			// 1. Create a new case for this patient
-			const newCase = await createCaseForPatient(patientId);
+			const newCase = await createCaseForPatient(id);
 
 			// 2. Prepare readiness object
 			const readiness = {
