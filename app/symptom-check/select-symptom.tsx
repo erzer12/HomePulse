@@ -1,10 +1,13 @@
 import { Stack, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymptomIcon } from "@/components/icons/SymptomIcon";
 import { Button } from "@/components/ui/Button";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, SPACING } from "@/constants/colors";
+import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
 
 const SYMPTOM_CATEGORIES = [
 	{ id: "fever", label: "Fever", icon: "Thermometer" },
@@ -19,6 +22,16 @@ const SYMPTOM_CATEGORIES = [
 export default function SelectSymptomScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const profiles = usePatientStore((s) => s.profiles);
+	const [patientName, setPatientName] = useState("the person");
+
+	useEffect(() => {
+		if (activeCase && profiles.length > 0) {
+			const patient = profiles.find((p) => p.id === activeCase.patient_id);
+			if (patient) setPatientName(patient.name);
+		}
+	}, [activeCase, profiles]);
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -31,7 +44,7 @@ export default function SelectSymptomScreen() {
 			<ScrollView contentContainerStyle={styles.scrollContent}>
 				<MotionView duration={400}>
 					<View style={styles.header}>
-						<Text style={styles.question}>What is Rohan experiencing?</Text>
+						<Text style={styles.question}>What is {patientName} experiencing?</Text>
 						<View style={styles.disclaimer}>
 							<Text style={styles.disclaimerText}>
 								This app guides you through common symptoms. In case of a

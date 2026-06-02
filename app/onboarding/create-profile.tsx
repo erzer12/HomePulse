@@ -1,6 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+	Alert,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -11,8 +12,10 @@ import {
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { usePatientStore } from "@/store/patient";
+import type { AgeGroup } from "@/types/triage";
 
-const AGE_GROUPS = [
+const AGE_GROUPS: { id: AgeGroup; label: string; range: string }[] = [
 	{ id: "infant", label: "Infant", range: "0-1 yr" },
 	{ id: "child", label: "Child", range: "1-12 yrs" },
 	{ id: "adult", label: "Adult", range: "13-65 yrs" },
@@ -23,8 +26,15 @@ const CONDITIONS = ["Diabetes", "Hypertension", "Asthma", "Pregnancy", "None"];
 
 export default function CreateProfileScreen() {
 	const router = useRouter();
-	const [selectedAge, setSelectedAge] = useState("child");
+	const createPatient = usePatientStore((s) => s.createPatient);
+	const [loading, setLoading] = useState(false);
+
+	const [name, setName] = useState("");
+	const [selectedAge, setSelectedAge] = useState<AgeGroup>("child");
 	const [selectedConditions, setSelectedConditions] = useState<string[]>([]);
+	const [allergies, setAllergies] = useState("");
+	const [contactName, setContactName] = useState("");
+	const [contactPhone, setContactPhone] = useState("");
 
 	const toggleCondition = (condition: string) => {
 		if (condition === "None") {
@@ -36,6 +46,35 @@ export default function CreateProfileScreen() {
 					? filtered.filter((c) => c !== condition)
 					: [...filtered, condition];
 			});
+		}
+	};
+
+	const handleSave = async () => {
+		if (!name.trim()) {
+			Alert.alert("Required", "Please enter a name.");
+			return;
+		}
+
+		setLoading(true);
+		try {
+			const patient = await createPatient({
+				name: name.trim(),
+				age_group: selectedAge,
+				chronic_conditions: selectedConditions.filter((c) => c !== "None"),
+				allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean),
+				emergency_contact_name: contactName.trim() || null,
+				emergency_contact_phone: contactPhone.trim() || null,
+			});
+
+			router.push({
+				pathname: "/onboarding/household-setup",
+				params: { patientId: patient.id },
+			});
+		} catch (err) {
+			Alert.alert("Error", "Failed to save profile. Please try again.");
+			console.error(err);
+		} finally {
+			setLoading(false);
 		}
 	};
 
@@ -63,6 +102,8 @@ export default function CreateProfileScreen() {
 						style={styles.input}
 						placeholder="Enter name"
 						placeholderTextColor={COLORS.textSecondary}
+						value={name}
+						onChangeText={setName}
 					/>
 				</Card>
 
@@ -128,6 +169,8 @@ export default function CreateProfileScreen() {
 						style={styles.input}
 						placeholder="e.g. Penicillin, Peanuts"
 						placeholderTextColor={COLORS.textSecondary}
+						value={allergies}
+						onChangeText={setAllergies}
 					/>
 				</Card>
 
@@ -137,19 +180,24 @@ export default function CreateProfileScreen() {
 						style={styles.input}
 						placeholder="Contact Name"
 						placeholderTextColor={COLORS.textSecondary}
+						value={contactName}
+						onChangeText={setContactName}
 					/>
 					<TextInput
 						style={[styles.input, styles.mtSmall]}
 						placeholder="Phone Number"
 						keyboardType="phone-pad"
 						placeholderTextColor={COLORS.textSecondary}
+						value={contactPhone}
+						onChangeText={setContactPhone}
 					/>
 				</Card>
 
 				<View style={styles.footer}>
 					<Button
-						title="Save & Continue"
-						onPress={() => router.push("/onboarding/household-setup")}
+						title={loading ? "Saving..." : "Save & Continue"}
+						onPress={handleSave}
+						disabled={loading}
 					/>
 				</View>
 			</ScrollView>
