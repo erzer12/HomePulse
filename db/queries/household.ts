@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
 import type { HouseholdReadiness } from "../../types/household";
+import { createUuid } from "../../utils/ids";
 import type { SQLiteDatabase } from "../connection";
 
 export async function saveHouseholdSnapshot(
@@ -7,7 +7,7 @@ export async function saveHouseholdSnapshot(
 	caseId: string,
 	readiness: HouseholdReadiness,
 ) {
-	const id = uuidv4();
+	const id = createUuid();
 	const now = Date.now();
 	await db.runAsync(
 		`INSERT INTO household_snapshots (

@@ -1,4 +1,5 @@
 import type { SQLiteDatabase } from "expo-sqlite";
+import { createCompactId } from "../../utils/ids";
 
 export async function getTasksForCase(db: SQLiteDatabase, caseId: string) {
 	return db.getAllAsync(
@@ -13,7 +14,7 @@ export async function createTask(
 	title: string,
 	description?: string,
 ) {
-	const id = require("uuid").v4().replace(/-/g, "");
+	const id = createCompactId();
 	const now = Date.now();
 	await db.runAsync(
 		`INSERT INTO caregiver_tasks (id, case_id, title, description, status, created_at) VALUES (?, ?, ?, ?, 'pending', ?)`,

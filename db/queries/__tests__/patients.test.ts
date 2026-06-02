@@ -1,4 +1,4 @@
-jest.mock("uuid", () => ({ v4: () => "mock-uuid" }));
+jest.mock("../../../utils/ids", () => ({ createUuid: () => "mock-uuid" }));
 
 import type { PatientInput } from "../../../types/patient";
 import type { SQLiteDatabase } from "../../connection";

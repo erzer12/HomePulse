@@ -1,8 +1,8 @@
-import { v4 as uuidv4 } from "uuid";
+import { createCompactId } from "../utils/ids";
 
 export function generateShareToken(): string {
 	// 128-bit token (32 hex chars) using UUIDv4 without dashes
-	return uuidv4().replace(/-/g, "");
+	return createCompactId();
 }
 
 export function generateShareLink(token: string): string {

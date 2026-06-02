@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
 import { getDb } from "@/db/connection";
+import { createCompactId } from "../utils/ids";
 import type { CaseSummary } from "./supabase";
 import { publishCaseSummary, updateTaskStatus } from "./supabase";
 
@@ -30,7 +30,7 @@ export async function enqueueSyncOperation(
 	const max_retries = opts?.maxRetries ?? 5;
 	const priority = opts?.priority ?? 0;
 	const payloadStr = JSON.stringify(payload);
-	const id = uuidv4().replace(/-/g, "");
+	const id = createCompactId();
 
 	await db.runAsync(
 		`INSERT INTO sync_queue (

@@ -1,5 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
 import type { SymptomEntryType, TriageOutputType } from "../../types";
+import { createUuid } from "../../utils/ids";
 import type { SQLiteDatabase } from "../connection";
 
 export async function getActiveCases(db: SQLiteDatabase) {
@@ -9,7 +9,7 @@ export async function getActiveCases(db: SQLiteDatabase) {
 }
 
 export async function createCase(db: SQLiteDatabase, patientId: string) {
-	const id = uuidv4();
+	const id = createUuid();
 	const now = Date.now();
 	await db.runAsync(
 		`INSERT INTO cases (id, patient_id, status, started_at) VALUES (?, ?, 'active', ?)`,
@@ -35,7 +35,7 @@ export async function appendSymptomEntry(
 	await db.runAsync(
 		`INSERT INTO symptom_entries (id, case_id, timestamp, category, duration_hours, temperature_celsius, spo2_percent, hydration_status, consciousness, breathing_difficulty, raw_inputs, triage_output) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		[
-			entry.id || uuidv4(),
+			entry.id || createUuid(),
 			entry.case_id,
 			entry.timestamp,
 			entry.category,

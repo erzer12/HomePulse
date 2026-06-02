@@ -1,4 +1,5 @@
-import { v4 as uuidv4 } from "uuid";
+import type { SQLiteBindValue } from "expo-sqlite";
+import { createUuid } from "../../utils/ids";
 import type { PatientInput, PatientUpdateInput } from "../../types/patient";
 import type { SQLiteDatabase } from "../connection";
 
@@ -43,7 +44,7 @@ export async function getPatients(db: SQLiteDatabase) {
 }
 
 export async function createPatient(db: SQLiteDatabase, data: PatientInput) {
-	const id = uuidv4();
+	const id = createUuid();
 	const now = Date.now();
 	await db.runAsync(
 		`INSERT INTO patients (id, name, age_group, age_months, chronic_conditions, allergies, medications, emergency_contact_name, emergency_contact_phone, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -79,7 +80,7 @@ export async function updatePatient(
 ) {
 	const now = Date.now();
 	const fields: string[] = [];
-	const values: unknown[] = [];
+	const values: SQLiteBindValue[] = [];
 	if (data.name !== undefined) {
 		fields.push("name = ?");
 		values.push(data.name);
