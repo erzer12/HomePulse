@@ -101,6 +101,7 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 			} catch (_err: unknown) {
 				await enqueueSyncOperation(
 					"task",
+					taskId,
 					"update_status",
 					{ id: taskId, status: "done" },
 					{ idempotencyKey: taskId },

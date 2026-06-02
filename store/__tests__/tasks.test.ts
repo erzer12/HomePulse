@@ -73,6 +73,7 @@ describe("Tasks store", () => {
 		expect(s.tasks[caseId][0].status).toBe("done");
 		expect(mockEnqueue).toHaveBeenCalledWith(
 			"task",
+			task.id,
 			"update_status",
 			{ id: task.id, status: "done" },
 			{ idempotencyKey: task.id },
