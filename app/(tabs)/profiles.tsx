@@ -1,4 +1,4 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useFocusEffect } from "expo-router";
 import {
 	Activity,
 	ChevronDown,
@@ -6,7 +6,7 @@ import {
 	CircleDot,
 	Clock,
 } from "lucide-react-native";
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import {
 	LayoutAnimation,
 	Pressable,
@@ -21,36 +21,37 @@ import { Card } from "@/components/ui/Card";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
-
-const MOCK_PROFILES = [
-	{
-		id: "1",
-		name: "Rohan",
-		age: "Child (8 yrs)",
-		conditions: ["Asthma"],
-		activeCase: true,
-		lastCheck: "2 hours ago",
-		stateLevel: 2,
-	},
-	{
-		id: "2",
-		name: "Meera",
-		age: "Infant (10 months)",
-		conditions: ["None"],
-		activeCase: false,
-		lastCheck: "Yesterday",
-		stateLevel: 1,
-	},
-];
+import { usePatientStore } from "@/store/patient";
+import { useCaseStore } from "@/store/case";
+import type { Patient } from "@/types/patient";
 
 export default function ProfilesScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
 	const [expandedId, setExpandedId] = useState<string | null>(null);
 
+	const profiles = usePatientStore((s) => s.profiles);
+	const loadPatients = usePatientStore((s) => s.loadPatients);
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const loadLatestActiveCase = useCaseStore((s) => s.loadLatestActiveCase);
+
+	useFocusEffect(
+		useCallback(() => {
+			loadPatients();
+			loadLatestActiveCase();
+		}, [loadPatients, loadLatestActiveCase])
+	);
+
 	const toggleExpand = (id: string) => {
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
 		setExpandedId(expandedId === id ? null : id);
+	};
+
+	const formatAge = (patient: Patient) => {
+		if (patient.age_group === "infant" && patient.age_months) {
+			return `Infant (${patient.age_months} months)`;
+		}
+		return patient.age_group.charAt(0).toUpperCase() + patient.age_group.slice(1);
 	};
 
 	return (
@@ -66,8 +67,10 @@ export default function ProfilesScreen() {
 				</View>
 
 				<View style={styles.list}>
-					{MOCK_PROFILES.map((profile, index) => {
+					{profiles.map((profile, index) => {
 						const isExpanded = expandedId === profile.id;
+						const isActive = activeCase?.patient_id === profile.id;
+						const conditions = JSON.parse(profile.chronic_conditions || "[]");
 
 						return (
 							<MotionView key={profile.id} delay={index * DURATION.stagger}>
@@ -78,7 +81,7 @@ export default function ProfilesScreen() {
 									>
 										<View style={styles.avatar}>
 											<Text style={styles.avatarText}>{profile.name[0]}</Text>
-											{profile.activeCase && (
+											{isActive && (
 												<View style={styles.activeIndicator}>
 													<CircleDot
 														size={12}
@@ -91,7 +94,7 @@ export default function ProfilesScreen() {
 
 										<View style={styles.info}>
 											<Text style={styles.name}>{profile.name}</Text>
-											<Text style={styles.details}>{profile.age}</Text>
+											<Text style={styles.details}>{formatAge(profile)}</Text>
 										</View>
 
 										{isExpanded ? (
@@ -109,16 +112,15 @@ export default function ProfilesScreen() {
 												<View style={styles.metaItem}>
 													<Activity size={16} color={COLORS.textSecondary} />
 													<Text style={styles.metaText}>
-														{profile.conditions.length > 0 &&
-														profile.conditions[0] !== "None"
-															? profile.conditions.join(", ")
+														{conditions.length > 0
+															? conditions.join(", ")
 															: "No chronic conditions"}
 													</Text>
 												</View>
 												<View style={styles.metaItem}>
 													<Clock size={16} color={COLORS.textSecondary} />
 													<Text style={styles.metaText}>
-														Last check: {profile.lastCheck}
+														Added: {new Date(profile.created_at).toLocaleDateString()}
 													</Text>
 												</View>
 											</View>
@@ -146,6 +148,12 @@ export default function ProfilesScreen() {
 							</MotionView>
 						);
 					})}
+
+					{profiles.length === 0 && (
+						<View style={styles.emptyState}>
+							<Text style={styles.emptyText}>No family profiles found.</Text>
+						</View>
+					)}
 				</View>
 
 				<View style={styles.footer}>
@@ -268,5 +276,13 @@ const styles = StyleSheet.create({
 	addButton: {
 		borderStyle: "dashed",
 		height: 60,
+	},
+	emptyState: {
+		alignItems: "center",
+		paddingVertical: SPACING.xxxxl,
+	},
+	emptyText: {
+		color: COLORS.textSecondary,
+		fontSize: 16,
 	},
 });

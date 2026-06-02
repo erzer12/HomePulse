@@ -1,116 +1,112 @@
-import { Stack } from "expo-router";
-import { Minus, TrendingDown, TrendingUp } from "lucide-react-native";
+import { Stack, useFocusEffect } from "expo-router";
+import { useCallback } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/Card";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
-
-const MOCK_HISTORY = [
-	{
-		id: "1",
-		timestamp: "Today, 10:30 AM",
-		state: { level: 2, label: "Home Care", theme: COLORS.state.care },
-		vitals: [
-			{ label: "Temp", value: "39.2°C", trend: "up" },
-			{ label: "Hydration", value: "Normal", trend: "stable" },
-		],
-		notes:
-			"Fever has increased since morning. Administered Paracetamol. Child is slightly more lethargic.",
-	},
-	{
-		id: "2",
-		timestamp: "Today, 07:00 AM",
-		state: { level: 1, label: "Monitor", theme: COLORS.state.monitor },
-		vitals: [
-			{ label: "Temp", value: "38.5°C", trend: "down" },
-			{ label: "Hydration", value: "Good", trend: "stable" },
-		],
-		notes: "Morning check-up. Alert and drinking fluids well.",
-	},
-	{
-		id: "3",
-		timestamp: "Yesterday, 09:00 PM",
-		state: { level: 2, label: "Home Care", theme: COLORS.state.care },
-		vitals: [
-			{ label: "Temp", value: "38.8°C", trend: "up" },
-			{ label: "Hydration", value: "Normal", trend: "stable" },
-		],
-		notes: "Slight fever spike before bed. Resting quietly.",
-	},
-];
+import { useCaseStore } from "@/store/case";
+import type { SymptomEntry } from "@/types/triage";
 
 export default function HistoryScreen() {
 	const insets = useSafeAreaInsets();
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const loadLatestActiveCase = useCaseStore((s) => s.loadLatestActiveCase);
+
+	useFocusEffect(
+		useCallback(() => {
+			loadLatestActiveCase();
+		}, [loadLatestActiveCase])
+	);
+
+	const getActionStateInfo = (level: number) => {
+		switch (level) {
+			case 4: return { label: "Urgent Care", theme: COLORS.state.urgent };
+			case 3: return { label: "Consultation", theme: COLORS.state.teleconsult };
+			case 2: return { label: "Guided Care", theme: COLORS.state.care };
+			default: return { label: "Monitor", theme: COLORS.state.monitor };
+		}
+	};
+
+	const formatTimestamp = (ts: number) => {
+		const date = new Date(ts);
+		return date.toLocaleString([], { 
+			weekday: 'short', 
+			hour: '2-digit', 
+			minute: '2-digit' 
+		});
+	};
 
 	const renderItem = ({
 		item,
 		index,
 	}: {
-		item: (typeof MOCK_HISTORY)[0];
+		item: SymptomEntry;
 		index: number;
-	}) => (
-		<MotionView delay={index * DURATION.stagger} style={styles.entryContainer}>
-			{/* Vertical Timeline Line */}
-			<View style={styles.timelineLineContainer}>
-				<View
-					style={[styles.timelineLine, index === 0 && styles.timelineLineTop]}
-				/>
-				<View
-					style={[
-						styles.timelineDot,
-						{ backgroundColor: item.state.theme.primary },
-					]}
-				/>
-			</View>
-
-			<Card variant="elevated" style={styles.entryCard}>
-				<View style={styles.entryHeader}>
-					<Text style={styles.timestamp}>{item.timestamp}</Text>
+	}) => {
+		const triage = JSON.parse(item.triage_output || "{}");
+		const stateInfo = getActionStateInfo(triage.action_state || 1);
+		
+		return (
+			<MotionView delay={index * DURATION.stagger} style={styles.entryContainer}>
+				<View style={styles.timelineLineContainer}>
+					<View
+						style={[styles.timelineLine, index === 0 && styles.timelineLineTop]}
+					/>
 					<View
 						style={[
-							styles.badge,
-							{ backgroundColor: item.state.theme.surface },
+							styles.timelineDot,
+							{ backgroundColor: stateInfo.theme.primary },
 						]}
-					>
-						<Text style={[styles.badgeText, { color: item.state.theme.text }]}>
-							{item.state.label}
-						</Text>
-					</View>
+					/>
 				</View>
 
-				<View style={styles.vitalsRow}>
-					{item.vitals.map((vital) => (
-						<View key={vital.label} style={styles.vitalItem}>
-							<Text style={styles.vitalLabel}>{vital.label}</Text>
+				<Card variant="elevated" style={styles.entryCard}>
+					<View style={styles.entryHeader}>
+						<Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text>
+						<View
+							style={[
+								styles.badge,
+								{ backgroundColor: stateInfo.theme.surface },
+							]}
+						>
+							<Text style={[styles.badgeText, { color: stateInfo.theme.text }]}>
+								{stateInfo.label}
+							</Text>
+						</View>
+					</View>
+
+					<View style={styles.vitalsRow}>
+						<View style={styles.vitalItem}>
+							<Text style={styles.vitalLabel}>Temp</Text>
 							<View style={styles.vitalValueContainer}>
-								<Text style={styles.vitalValue}>{vital.value}</Text>
-								{vital.trend === "up" && (
-									<TrendingUp size={16} color={COLORS.state.urgent.primary} />
-								)}
-								{vital.trend === "down" && (
-									<TrendingDown
-										size={16}
-										color={COLORS.state.monitor.primary}
-									/>
-								)}
-								{vital.trend === "stable" && (
-									<Minus size={16} color={COLORS.textSecondary} />
-								)}
+								<Text style={styles.vitalValue}>
+									{item.temperature_celsius ? `${item.temperature_celsius}°C` : "N/A"}
+								</Text>
 							</View>
 						</View>
-					))}
-				</View>
+						<View style={styles.vitalItem}>
+							<Text style={styles.vitalLabel}>Symptom</Text>
+							<View style={styles.vitalValueContainer}>
+								<Text style={styles.vitalValue}>
+									{item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+								</Text>
+							</View>
+						</View>
+					</View>
 
-				{item.notes && (
-					<Text style={styles.notes} numberOfLines={3}>
-						{item.notes}
-					</Text>
-				)}
-			</Card>
-		</MotionView>
-	);
+					{triage.reasoning && (
+						<Text style={styles.notes} numberOfLines={3}>
+							{triage.reasoning}
+						</Text>
+					)}
+				</Card>
+			</MotionView>
+		);
+	};
+
+	const timeline = activeCase?.timeline || [];
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -125,7 +121,7 @@ export default function HistoryScreen() {
 			/>
 
 			<FlatList
-				data={MOCK_HISTORY}
+				data={[...timeline].reverse()} // Show latest first
 				renderItem={renderItem}
 				keyExtractor={(item) => item.id}
 				contentContainerStyle={styles.listContent}
@@ -133,20 +129,29 @@ export default function HistoryScreen() {
 					<MotionView>
 						<Card style={styles.summaryCard}>
 							<Text style={styles.summaryTitle}>Active Case Summary</Text>
-							<Text style={styles.summaryDetail}>Started 2 days ago</Text>
-							<View style={styles.summaryStateRow}>
-								<Text style={styles.summaryStateLabel}>Current State:</Text>
-								<Text
-									style={[
-										styles.summaryStateValue,
-										{ color: COLORS.state.care.text },
-									]}
-								>
-									Guided Home Care (Level 2)
-								</Text>
-							</View>
+							<Text style={styles.summaryDetail}>
+								{activeCase ? `Ongoing Journey` : "No active case"}
+							</Text>
+							{activeCase && (
+								<View style={styles.summaryStateRow}>
+									<Text style={styles.summaryStateLabel}>Status:</Text>
+									<Text
+										style={[
+											styles.summaryStateValue,
+											{ color: COLORS.state.care.text },
+										]}
+									>
+										{getActionStateInfo(activeCase.current_action_state || 1).label}
+									</Text>
+								</View>
+							)}
 						</Card>
 					</MotionView>
+				)}
+				ListEmptyComponent={() => (
+					<View style={styles.emptyState}>
+						<Text style={styles.emptyText}>No history entries recorded yet.</Text>
+					</View>
 				)}
 			/>
 		</View>
@@ -273,5 +278,13 @@ const styles = StyleSheet.create({
 		lineHeight: 20,
 		color: COLORS.textPrimary,
 		fontStyle: "italic",
+	},
+	emptyState: {
+		alignItems: "center",
+		paddingVertical: SPACING.xxxxl,
+	},
+	emptyText: {
+		color: COLORS.textSecondary,
+		fontSize: 16,
 	},
 });

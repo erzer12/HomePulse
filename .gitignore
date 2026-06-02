@@ -1,7 +1,7 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
-
 # dependencies
 node_modules/
+.pnp
+.pnp.js
 
 # Expo
 .expo/
@@ -18,6 +18,10 @@ expo-env.d.ts
 *.key
 *.mobileprovision
 
+# generated native folders
+/ios
+/android
+
 # Metro
 .metro-health-check*
 
@@ -30,15 +34,28 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# Local environment files
+.env
 .env*.local
+
+# SQLite / Local Database
+*.db
+*.db-journal
+*.db-wal
+test-db.db
 
 # typescript
 *.tsbuildinfo
 
-# generated native folders
-/ios
-/android
-
 # Coverage and generated reports
 coverage/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Project specific
+db/backups/
+scripts/*.log

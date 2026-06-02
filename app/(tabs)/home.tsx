@@ -77,9 +77,9 @@ export default function HomeScreen() {
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
 				<View style={styles.welcomeSection}>
-					<Text style={styles.welcomeTitle}>Hello, Abishek</Text>
+					<Text style={styles.welcomeTitle}>Welcome back</Text>
 					<Text style={styles.welcomeSubtitle}>
-						Your household is ready for care.
+						Monitoring your household's health.
 					</Text>
 				</View>
 
