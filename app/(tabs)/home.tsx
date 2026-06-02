@@ -26,7 +26,7 @@ export default function HomeScreen() {
 		useCallback(() => {
 			loadLatestActiveCase();
 			loadPatients();
-		}, [])
+		}, [loadLatestActiveCase, loadPatients])
 	);
 
 	useFocusEffect(
@@ -101,7 +101,10 @@ export default function HomeScreen() {
 								<Text style={styles.patientName}>{patientName}</Text>
 							</View>
 							<ActionStateCard
-								state={getActionStateData((activeCase as any).current_action_state)}
+								state={getActionStateData(
+									(activeCase as unknown as { current_action_state: number })
+										.current_action_state,
+								)}
 								showExplanation={true}
 							/>
 						</Card>

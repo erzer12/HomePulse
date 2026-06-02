@@ -9,7 +9,7 @@ import type { CaseSummary } from "../services/supabase";
 import { publishCaseSummary } from "../services/supabase";
 import { enqueueSyncOperation } from "../services/sync";
 import type { CaseRecord } from "../types/case";
-import type { SymptomEntry, TriageOutput } from "../types/triage";
+import type { SymptomEntry, TriageInput, TriageOutput } from "../types/triage";
 
 interface CaseState {
 	activeCase?: CaseRecord | undefined;
@@ -133,7 +133,7 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 				},
 			};
 
-			const output = evaluate(input as any);
+			const output = evaluate(input as unknown as TriageInput);
 			// persist triage_output on symptom entry and update case state
 			await caseQueries.updateCaseState(
 				db as unknown as SQLiteDatabase,

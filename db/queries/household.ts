@@ -29,11 +29,20 @@ export async function saveHouseholdSnapshot(
 	return { id, case_id: caseId, timestamp: now, ...readiness };
 }
 
+interface HouseholdRow {
+	has_thermometer: number;
+	has_oximeter: number;
+	transport_available: number;
+	pharmacy_distance_km: number;
+	overnight_caregiver: number;
+	medicine_stock: number;
+}
+
 export async function getLatestHouseholdSnapshot(
 	db: SQLiteDatabase,
 	caseId: string,
 ): Promise<HouseholdReadiness | null> {
-	const row = await db.getFirstAsync<any>(
+	const row = await db.getFirstAsync<HouseholdRow>(
 		"SELECT * FROM household_snapshots WHERE case_id = ? ORDER BY timestamp DESC LIMIT 1",
 		[caseId],
 	);
