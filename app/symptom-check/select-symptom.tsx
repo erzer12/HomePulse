@@ -53,7 +53,6 @@ export default function SelectSymptomScreen() {
 						</View>
 					</View>
 				</MotionView>
-...
 
 				<View style={styles.grid}>
 					{SYMPTOM_CATEGORIES.map((symptom, index) => (
