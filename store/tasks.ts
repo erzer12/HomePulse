@@ -97,14 +97,15 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 
 			// Attempt server update; on failure enqueue for retry
 			try {
-				await supabaseUpdateTaskStatus(taskId, "done");
+			await supabaseUpdateTaskStatus(taskId, "done");
 			} catch (_err: unknown) {
-				await enqueueSyncOperation(
-					"task",
-					"update_status",
-					{ id: taskId, status: "done" },
-					{ idempotencyKey: taskId },
-				);
+			await enqueueSyncOperation(
+			"task",
+			taskId,
+			"update_status",
+			{ id: taskId, status: "done" },
+			{ idempotencyKey: taskId },
+			);
 			}
 		} catch (e: unknown) {
 			set({

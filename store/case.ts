@@ -119,7 +119,7 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 				},
 			};
 
-			const output = evaluate(input as unknown as TriageOutput);
+			const output = evaluate(input as any);
 			// persist triage_output on symptom entry and update case state
 			await caseQueries.updateCaseState(
 				db as unknown as SQLiteDatabase,
@@ -190,6 +190,7 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 				// enqueue for background retry
 				await enqueueSyncOperation(
 					"case_summary",
+					caseId,
 					"publish",
 					{ caseId, token },
 					{ idempotencyKey: token },

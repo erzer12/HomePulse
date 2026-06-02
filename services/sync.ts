@@ -5,19 +5,22 @@ import { publishCaseSummary, updateTaskStatus } from "./supabase";
 
 type SyncRow = {
 	id: string;
-	idempotency_key: string | null;
-	created_at: number;
 	entity_type: string;
+	entity_id: string;
 	operation: string;
 	payload: string; // JSON
+	idempotency_key: string | null;
 	retry_count: number;
 	max_retries: number;
-	priority: number;
 	last_error: string | null;
+	priority: number;
+	created_at: number;
+	synced_at: number | null;
 };
 
 export async function enqueueSyncOperation(
 	entityType: string,
+	entityId: string,
 	operation: string,
 	payload: unknown,
 	opts?: { idempotencyKey?: string; maxRetries?: number; priority?: number },
@@ -30,16 +33,20 @@ export async function enqueueSyncOperation(
 	const id = uuidv4().replace(/-/g, "");
 
 	await db.runAsync(
-		`INSERT INTO sync_queue (id, idempotency_key, created_at, entity_type, operation, payload, retry_count, max_retries, priority, last_error) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, NULL)`,
+		`INSERT INTO sync_queue (
+			id, entity_type, entity_id, operation, payload, 
+			idempotency_key, retry_count, max_retries, priority, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, ?)`,
 		[
 			id,
-			idempotency_key,
-			Date.now(),
 			entityType,
+			entityId,
 			operation,
 			payloadStr,
+			idempotency_key,
 			max_retries,
 			priority,
+			Date.now(),
 		],
 	);
 }
