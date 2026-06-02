@@ -1,11 +1,16 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useLocalSearchParams } from "expo-router";
 import { Activity, Car, Moon, Pill, Thermometer } from "lucide-react-native";
 import type React from "react";
 import { useState } from "react";
-import { ScrollView, StyleSheet, Switch, Text, View } from "react-native";
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useCaseStore } from "@/store/case";
+import { useHouseholdStore } from "@/store/household";
+import { getDb } from "@/db/connection";
+import { saveHouseholdSnapshot } from "@/db/queries/household";
+import type { SQLiteDatabase } from "@/db/connection";
 
 interface ResourceToggleProps {
 	label: string;
@@ -38,6 +43,12 @@ function ResourceToggle({
 
 export default function HouseholdSetupScreen() {
 	const router = useRouter();
+	const { patientId } = useLocalSearchParams<{ patientId: string }>();
+	
+	const createCaseForPatient = useCaseStore((s) => s.createCaseForPatient);
+	const setReadiness = useHouseholdStore((s) => s.setReadiness);
+
+	const [loading, setLoading] = useState(false);
 	const [resources, setResources] = useState({
 		thermometer: true,
 		oximeter: false,
@@ -45,6 +56,45 @@ export default function HouseholdSetupScreen() {
 		caregiver: true,
 		medicine: true,
 	});
+	const [distance, setDistance] = useState("1.5");
+
+	const handleComplete = async () => {
+		if (!patientId) {
+			Alert.alert("Error", "No patient profile found. Please restart the setup.");
+			router.replace("/onboarding/create-profile");
+			return;
+		}
+
+		setLoading(true);
+		try {
+			// 1. Create a new case for this patient
+			const newCase = await createCaseForPatient(patientId);
+
+			// 2. Prepare readiness object
+			const readiness = {
+				has_thermometer: resources.thermometer,
+				has_oximeter: resources.oximeter,
+				transport_available: resources.transport,
+				pharmacy_distance_km: parseFloat(distance) || 0,
+				overnight_caregiver: resources.caregiver,
+				medicine_stock: resources.medicine,
+			};
+
+			// 3. Save snapshot to DB
+			const db = await getDb();
+			await saveHouseholdSnapshot(db as unknown as SQLiteDatabase, newCase.id, readiness);
+
+			// 4. Update global store
+			setReadiness(readiness);
+
+			router.replace("/(tabs)/home");
+		} catch (err) {
+			Alert.alert("Error", "Failed to complete setup. Please try again.");
+			console.error(err);
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<View style={styles.container}>
@@ -97,19 +147,22 @@ export default function HouseholdSetupScreen() {
 				/>
 
 				<Card variant="elevated" style={styles.pharmacyCard}>
-					<Text style={styles.label}>Nearest Pharmacy Distance</Text>
-					<View style={styles.distanceRow}>
-						<Text style={styles.distanceValue}>
-							1.5 <Text style={styles.unit}>km</Text>
-						</Text>
-					</View>
+					<Text style={styles.label}>Nearest Pharmacy Distance (km)</Text>
+					<TextInput
+						style={styles.distanceInput}
+						value={distance}
+						onChangeText={setDistance}
+						keyboardType="decimal-pad"
+						placeholder="1.5"
+					/>
 					<Text style={styles.hint}>Used for medicine and supply timing.</Text>
 				</Card>
 
 				<View style={styles.footer}>
 					<Button
-						title="Complete Setup"
-						onPress={() => router.replace("/(tabs)/home")}
+						title={loading ? "Completing..." : "Complete Setup"}
+						onPress={handleComplete}
+						disabled={loading}
 					/>
 				</View>
 			</ScrollView>
@@ -173,23 +226,16 @@ const styles = StyleSheet.create({
 		color: COLORS.textPrimary,
 		marginBottom: 8,
 	},
-	distanceRow: {
+	distanceInput: {
 		backgroundColor: COLORS.background,
 		borderRadius: RADIUS.lg,
 		padding: SPACING.lg,
-		alignItems: "center",
-		borderWidth: 1,
-		borderColor: COLORS.border,
-	},
-	distanceValue: {
 		fontSize: 24,
 		fontWeight: "800",
 		color: COLORS.primary,
-	},
-	unit: {
-		fontSize: 16,
-		fontWeight: "600",
-		color: COLORS.textSecondary,
+		textAlign: "center",
+		borderWidth: 1,
+		borderColor: COLORS.border,
 	},
 	hint: {
 		fontSize: 12,

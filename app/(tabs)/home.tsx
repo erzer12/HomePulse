@@ -1,27 +1,66 @@
-import { Stack, useRouter } from "expo-router";
+import { Stack, useRouter, useFocusEffect } from "expo-router";
 import { ClipboardList, History, Plus, Users } from "lucide-react-native";
+import { useCallback, useState } from "react";
 import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
+import type { ActionState } from "@/types/triage";
 
 export default function HomeScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const loadLatestActiveCase = useCaseStore((s) => s.loadLatestActiveCase);
+	const profiles = usePatientStore((s) => s.profiles);
+	const loadPatients = usePatientStore((s) => s.loadPatients);
 
-	// Mock Active Case
-	const activeCase = {
-		patientName: "Rohan",
-		state: {
-			level: 2 as const,
-			label: "Guided Home Care",
-			explanation: "Manage symptoms at home. Next check-in due in 2h 15m.",
-			triggers: ["Fever over 38°C"],
-			redFlags: ["Difficulty breathing", "Confusion"],
-			recheckIntervalMinutes: 120,
-		},
+	const [patientName, setPatientName] = useState<string>("Unknown");
+
+	useFocusEffect(
+		useCallback(() => {
+			loadLatestActiveCase();
+			loadPatients();
+		}, [])
+	);
+
+	useFocusEffect(
+		useCallback(() => {
+			if (activeCase && profiles.length > 0) {
+				const patient = profiles.find(p => p.id === activeCase.patient_id);
+				if (patient) setPatientName(patient.name);
+			}
+		}, [activeCase, profiles])
+	);
+
+	// Map ActionState level to data for ActionStateCard
+	const getActionStateData = (level?: number): ActionState => {
+		const defaultState: ActionState = {
+			level: 1,
+			label: "Monitor",
+			explanation: "Keep observing for changes.",
+			triggers: [],
+			redFlags: [],
+			recheckIntervalMinutes: 240,
+		};
+
+		if (!level) return defaultState;
+
+		switch (level) {
+			case 4:
+				return { level: 4, label: "Urgent Care", explanation: "Seek medical help immediately.", triggers: [], redFlags: [], recheckIntervalMinutes: 0 };
+			case 3:
+				return { level: 3, label: "Consultation", explanation: "Arrange a teleconsultation or visit a clinic.", triggers: [], redFlags: [], recheckIntervalMinutes: 60 };
+			case 2:
+				return { level: 2, label: "Guided Care", explanation: "Manage symptoms at home with tracking.", triggers: [], redFlags: [], recheckIntervalMinutes: 120 };
+			default:
+				return defaultState;
+		}
 	};
 
 	return (
@@ -32,7 +71,7 @@ export default function HomeScreen() {
 					headerLargeTitle: true,
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
-					headerShown: false, // Using custom header spacing
+					headerShown: false,
 				}}
 			/>
 
@@ -56,13 +95,13 @@ export default function HomeScreen() {
 							<View style={styles.patientRow}>
 								<View style={styles.avatar}>
 									<Text style={styles.avatarText}>
-										{activeCase.patientName[0]}
+										{patientName[0]}
 									</Text>
 								</View>
-								<Text style={styles.patientName}>{activeCase.patientName}</Text>
+								<Text style={styles.patientName}>{patientName}</Text>
 							</View>
 							<ActionStateCard
-								state={activeCase.state}
+								state={getActionStateData((activeCase as any).current_action_state)}
 								showExplanation={true}
 							/>
 						</Card>
@@ -129,12 +168,14 @@ export default function HomeScreen() {
 					</View>
 				</View>
 
-				<Card style={styles.tipCard}>
-					<Text style={styles.tipTitle}>Caregiver Tip</Text>
-					<Text style={styles.tipText}>
-						Keep Rohan hydrated with frequent small sips of water or ORS.
-					</Text>
-				</Card>
+				{activeCase && (
+					<Card style={styles.tipCard}>
+						<Text style={styles.tipTitle}>Caregiver Tip</Text>
+						<Text style={styles.tipText}>
+							Keep {patientName} hydrated with frequent small sips of water or ORS.
+						</Text>
+					</Card>
+				)}
 			</ScrollView>
 		</View>
 	);

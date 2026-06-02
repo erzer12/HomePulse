@@ -17,6 +17,7 @@ interface CaseState {
 	error: string | null;
 	createCaseForPatient: (patientId: string) => Promise<CaseRecord>;
 	loadActiveCase: (patientId: string) => Promise<void>;
+	loadLatestActiveCase: () => Promise<void>;
 	appendSymptomEntry: (entry: SymptomEntry) => Promise<void>;
 	evaluateCase: (caseId: string) => Promise<TriageOutput>;
 	closeCase: (caseId: string) => Promise<void>;
@@ -54,6 +55,19 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 				patientId,
 			);
 			set({ activeCase: c || undefined, loading: false });
+		} catch (e: unknown) {
+			set({
+				error: e instanceof Error ? e.message : String(e),
+				loading: false,
+			});
+		}
+	},
+	loadLatestActiveCase: async () => {
+		set({ loading: true, error: null });
+		try {
+			const db = await getDb();
+			const rows = await caseQueries.getActiveCases(db as unknown as SQLiteDatabase);
+			set({ activeCase: rows[0] || undefined, loading: false });
 		} catch (e: unknown) {
 			set({
 				error: e instanceof Error ? e.message : String(e),
