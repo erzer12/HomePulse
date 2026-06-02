@@ -82,9 +82,9 @@ export default function HouseholdSetupScreen() {
 			};
 
 			// 3. Save snapshot to DB
+			// 3. Save snapshot to DB
 			const db = await getDb();
-			await saveHouseholdSnapshot(db as unknown as SQLiteDatabase, newCase.id, readiness);
-
+			await saveHouseholdSnapshot(db, newCase.id, readiness);
 			// 4. Update global store
 			setReadiness(readiness);
 
