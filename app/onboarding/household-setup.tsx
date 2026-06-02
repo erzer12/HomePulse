@@ -10,7 +10,6 @@ import { useCaseStore } from "@/store/case";
 import { useHouseholdStore } from "@/store/household";
 import { getDb } from "@/db/connection";
 import { saveHouseholdSnapshot } from "@/db/queries/household";
-import type { SQLiteDatabase } from "@/db/connection";
 
 interface ResourceToggleProps {
 	label: string;
