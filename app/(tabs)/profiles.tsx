@@ -70,7 +70,7 @@ export default function ProfilesScreen() {
 					{profiles.map((profile, index) => {
 						const isExpanded = expandedId === profile.id;
 						const isActive = activeCase?.patient_id === profile.id;
-						const conditions = JSON.parse(profile.chronic_conditions || "[]");
+						const conditions = profile.chronic_conditions;
 
 						return (
 							<MotionView key={profile.id} delay={index * DURATION.stagger}>

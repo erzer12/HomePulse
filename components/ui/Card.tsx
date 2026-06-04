@@ -1,9 +1,9 @@
 import type { PropsWithChildren } from "react";
-import { StyleSheet, View, type ViewStyle } from "react-native";
+import { StyleSheet, View, type ViewStyle, type StyleProp } from "react-native";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 
 interface CardProps extends PropsWithChildren {
-	style?: ViewStyle;
+	style?: StyleProp<ViewStyle>;
 	variant?: "default" | "elevated";
 }
 

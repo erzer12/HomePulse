@@ -16,7 +16,7 @@ export default function TabsLayout() {
 					paddingBottom: 12, // More bottom padding for labels
 					paddingTop: 8,
 				},
-				tabBarButton: (props) => {
+				tabBarButton: (props: any) => {
 					const { style, onPress, children, ...rest } = props;
 					return (
 						<Pressable

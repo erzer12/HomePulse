@@ -24,7 +24,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 			const rc = cached.config as RuleConfig;
 			const matched = matchRules(rc.rules, input);
 			if (matched) {
-				const state = buildState(matched.output_state as 1 | 2 | 3 | 4);
+				const state = buildActionState(matched.output_state as 1 | 2 | 3 | 4);
 				const tpl = getExplanationTemplate(
 					matched.output_state as 1 | 2 | 3 | 4,
 					matched.explanation_key,
@@ -43,7 +43,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 		const redFlagResult = checkRedFlags(input);
 		if (redFlagResult.triggered) {
 			return {
-				action_state: buildState(4),
+				action_state: buildActionState(4),
 				rule_version: RULE_VERSION,
 				evaluated_at: evaluatedAt,
 				red_flag_triggered: true,
@@ -55,7 +55,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 		const trajectory = analyzeTrajectory(input.symptom, input.symptom_history);
 		if (trajectory.worsening) {
 			return {
-				action_state: buildState(4),
+				action_state: buildActionState(4),
 				rule_version: RULE_VERSION,
 				evaluated_at: evaluatedAt,
 				red_flag_triggered: true,
@@ -71,7 +71,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 		);
 
 		return {
-			action_state: buildState(modifiedState),
+			action_state: buildActionState(modifiedState),
 			rule_version: RULE_VERSION,
 			evaluated_at: evaluatedAt,
 			red_flag_triggered: false,
@@ -84,7 +84,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 		console.error("Engine evaluateTriage error:", msg);
 		// Conservative fallback per ARCHITECTURE.md: teleconsult (level 3)
 		return {
-			action_state: buildState(3),
+			action_state: buildActionState(3),
 			rule_version: RULE_VERSION,
 			evaluated_at: Date.now(),
 			red_flag_triggered: false,
@@ -114,7 +114,7 @@ function evaluateBaseState(input: TriageInput): 1 | 2 | 3 | 4 {
 	return 1;
 }
 
-function buildState(level: 1 | 2 | 3 | 4): ActionState {
+export function buildActionState(level: 1 | 2 | 3 | 4): ActionState {
 	const states: Record<1 | 2 | 3 | 4, ActionState> = {
 		1: {
 			level: 1,

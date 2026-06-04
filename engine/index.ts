@@ -1,5 +1,5 @@
 import type { TriageInput, TriageOutput } from "../types/triage";
-import { evaluateTriage } from "./evaluator";
+import { evaluateTriage, buildActionState } from "./evaluator";
 import { loadBundledRuleConfig } from "./rulesLoader";
 
 // Ensure rule config is loaded/verified once at startup (async). Evaluations are synchronous
@@ -7,6 +7,8 @@ import { loadBundledRuleConfig } from "./rulesLoader";
 loadBundledRuleConfig().catch(() => {
 	/* ignore load errors here; evaluator will fallback */
 });
+
+export { buildActionState };
 
 export function evaluate(input: TriageInput): TriageOutput {
 	// evaluator is deterministic and pure; it may use cached rules via rulesLoader

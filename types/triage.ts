@@ -22,6 +22,7 @@ export interface ActionState {
 
 export interface SymptomEntry {
 	id: string;
+	case_id: string;
 	timestamp: number;
 	category: SymptomCategory;
 	duration_hours: number;
@@ -31,6 +32,7 @@ export interface SymptomEntry {
 	consciousness: "alert" | "drowsy" | "confused" | "unresponsive";
 	breathing_difficulty: boolean;
 	notes?: string;
+	triage_output?: string; // JSON string of TriageOutput
 }
 
 export interface HouseholdReadiness {
@@ -60,6 +62,9 @@ export interface TriageOutput {
 	red_flag_triggered: boolean;
 	red_flag_reason?: string;
 	household_modifiers_applied: string[];
+	care_instructions?: string[];
+	red_flags?: string[];
+	reasoning?: string;
 	// In case of engine/internal errors include a safe, engineering-facing message.
 	error?: string;
 }

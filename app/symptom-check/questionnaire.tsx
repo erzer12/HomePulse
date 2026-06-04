@@ -1,6 +1,6 @@
-import { useRouter } from "expo-router";
+import { useRouter, useLocalSearchParams } from "expo-router";
 import { Check, ChevronLeft, X } from "lucide-react-native";
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
 	Animated,
 	KeyboardAvoidingView,
@@ -16,91 +16,97 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
-
-// --- Fever Question Set (Mock based on Spec) ---
-const FEVER_QUESTIONS = [
-	{
-		id: "fever_duration",
-		text: "How long has the fever been present?",
-		hint: "Count from the very first time you noticed the heat.",
-		type: "choice",
-		options: [
-			{ label: "Less than 2 days", value: "<2d" },
-			{ label: "2 to 5 days", value: "2-5d" },
-			{ label: "More than 5 days", value: ">5d" },
-		],
-	},
-	{
-		id: "has_thermometer",
-		text: "Do you have a digital thermometer?",
-		hint: "A thermometer helps us give much more accurate advice.",
-		type: "boolean",
-	},
-	{
-		id: "temp_reading",
-		text: "What is the temperature reading?",
-		hint: "Use the thermometer under the arm or in the mouth.",
-		type: "numeric",
-		unit: "°C",
-	},
-	{
-		id: "is_drinking",
-		text: "Is Rohan drinking fluids normally?",
-		hint: "Offer a few sips of water to check.",
-		type: "choice",
-		options: [
-			{ label: "Yes, normally", value: "yes" },
-			{ label: "Less than usual", value: "less" },
-			{ label: "No, not at all", value: "no" },
-		],
-	},
-	{
-		id: "breathing_diff",
-		text: "Is there any difficulty breathing?",
-		hint: "Look at his chest — is it moving faster than usual?",
-		type: "boolean",
-	},
-	{
-		id: "alertness",
-		text: "How alert is Rohan right now?",
-		hint: "Try calling his name or touching his shoulder.",
-		type: "choice",
-		options: [
-			{ label: "Fully Alert", value: "alert" },
-			{ label: "Sleepy / Drowsy", value: "drowsy" },
-			{ label: "Confused", value: "confused" },
-			{ label: "Unresponsive", value: "unresponsive" },
-		],
-	},
-];
+import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
+import { createUuid } from "@/utils/ids";
+import type { SymptomEntry } from "@/types/triage";
 
 export default function QuestionnaireScreen() {
 	const router = useRouter();
+	const params = useLocalSearchParams();
 	const insets = useSafeAreaInsets();
+	
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const profiles = usePatientStore((s) => s.profiles);
+	const appendSymptomEntry = useCaseStore((s) => s.appendSymptomEntry);
+	const evaluateCase = useCaseStore((s) => s.evaluateCase);
 
-	const [answers, setAnswers] = useState<
-		Record<string, string | number | boolean>
-	>({});
+	const [patientName, setPatientName] = useState("the person");
+	const [currentIndex, setCurrentIndex] = useState(0);
+	const [answers, setAnswers] = useState<Record<string, string | number | boolean>>({});
 	const [inputValue, setInputValue] = useState("");
+
+	useEffect(() => {
+		if (activeCase && profiles.length > 0) {
+			const patient = profiles.find((p) => p.id === activeCase.patient_id);
+			if (patient) setPatientName(patient.name);
+		}
+	}, [activeCase, profiles]);
+
+	const QUESTIONS = [
+		{
+			id: "duration",
+			text: `How long has the symptom been present?`,
+			hint: "Count from the very first time you noticed it.",
+			type: "choice",
+			options: [
+				{ label: "Less than 2 days", value: "<2d" },
+				{ label: "2 to 5 days", value: "2-5d" },
+				{ label: "More than 5 days", value: ">5d" },
+			],
+		},
+		{
+			id: "temperature",
+			text: "What is the temperature reading?",
+			hint: "If you have a thermometer, enter the reading here.",
+			type: "numeric",
+			unit: "°C",
+		},
+		{
+			id: "is_drinking",
+			text: `Is ${patientName} drinking fluids normally?`,
+			hint: "Offer a few sips of water to check.",
+			type: "choice",
+			options: [
+				{ label: "Yes, normally", value: "normal" },
+				{ label: "Less than usual", value: "reduced" },
+				{ label: "No, not at all", value: "poor" },
+			],
+		},
+		{
+			id: "breathing_diff",
+			text: "Is there any difficulty breathing?",
+			hint: `Look at ${patientName}'s chest — is it moving faster than usual?`,
+			type: "boolean",
+		},
+		{
+			id: "alertness",
+			text: `How alert is ${patientName} right now?`,
+			hint: "Try calling their name or touching their shoulder.",
+			type: "choice",
+			options: [
+				{ label: "Fully Alert", value: "alert" },
+				{ label: "Sleepy / Drowsy", value: "lethargic" },
+				{ label: "Confused", value: "confused" },
+				{ label: "Unresponsive", value: "unconscious" },
+			],
+		},
+	];
 
 	// Animation state
 	const contentFade = useRef(new Animated.Value(1)).current;
 
-	const currentQuestion = FEVER_QUESTIONS[currentIndex];
-	const progress = (currentIndex + 1) / FEVER_QUESTIONS.length;
+	const currentQuestion = QUESTIONS[currentIndex];
+	const progress = (currentIndex + 1) / QUESTIONS.length;
 
 	const transitionToNext = (nextIndex: number) => {
-		// Phase 1: Fade out
 		Animated.timing(contentFade, {
 			toValue: 0,
 			duration: 150,
 			useNativeDriver: true,
 		}).start(() => {
-			// Phase 2: Update state
 			setCurrentIndex(nextIndex);
 			setInputValue("");
-
-			// Phase 3: Fade back in
 			Animated.timing(contentFade, {
 				toValue: 1,
 				duration: 200,
@@ -109,11 +115,40 @@ export default function QuestionnaireScreen() {
 		});
 	};
 
-	const handleNext = () => {
-		if (currentIndex < FEVER_QUESTIONS.length - 1) {
+	const handleNext = async () => {
+		// If numeric, save input first
+		if (currentQuestion.type === "numeric" && inputValue) {
+			setAnswers(prev => ({ ...prev, [currentQuestion.id]: Number.parseFloat(inputValue) }));
+		}
+
+		if (currentIndex < QUESTIONS.length - 1) {
 			transitionToNext(currentIndex + 1);
 		} else {
+			await finishAssessment();
+		}
+	};
+
+	const finishAssessment = async () => {
+		if (!activeCase) return;
+
+		const entry: SymptomEntry = {
+			id: createUuid(),
+			case_id: activeCase.id,
+			timestamp: Date.now(),
+			category: (params.category as any) || "fever",
+			duration_hours: answers.duration === "<2d" ? 24 : answers.duration === "2-5d" ? 72 : 144,
+			temperature_celsius: answers.temperature as number || undefined,
+			hydration_status: (answers.is_drinking as any) || "normal",
+			consciousness: (answers.alertness as any) || "alert",
+			breathing_difficulty: !!answers.breathing_diff,
+		};
+
+		try {
+			await appendSymptomEntry(entry);
+			await evaluateCase(activeCase.id);
 			router.push("/symptom-check/household-check");
+		} catch (e) {
+			console.error("Failed to save assessment", e);
 		}
 	};
 
@@ -146,7 +181,7 @@ export default function QuestionnaireScreen() {
 				</Pressable>
 				<View style={styles.progressContainer}>
 					<Text style={styles.progressText}>
-						Step {currentIndex + 1} of {FEVER_QUESTIONS.length}
+						Step {currentIndex + 1} of {QUESTIONS.length}
 					</Text>
 					<ProgressBar
 						progress={progress}
@@ -275,7 +310,7 @@ export default function QuestionnaireScreen() {
 			>
 				<Button
 					title={
-						currentIndex === FEVER_QUESTIONS.length - 1
+						currentIndex === QUESTIONS.length - 1
 							? "Finish Assessment"
 							: "Next Question"
 					}

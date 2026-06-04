@@ -38,7 +38,7 @@ export function applyHouseholdModifiers(
 					4,
 					Math.max(
 						1,
-						adjusted + (mod.max_state ? 0 : mod.state_adjustment || 0),
+						adjusted + (mod.state_adjustment || 0),
 					),
 				);
 				modifiers.push(mod.reason_key || mod.id);

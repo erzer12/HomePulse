@@ -15,6 +15,7 @@ interface ButtonProps {
 	size?: "normal" | "large";
 	fullWidth?: boolean;
 	style?: ViewStyle;
+	disabled?: boolean;
 }
 
 export function Button({
@@ -24,8 +25,10 @@ export function Button({
 	size = "large",
 	fullWidth = true,
 	style,
+	disabled = false,
 }: ButtonProps) {
 	const getVariantStyles = () => {
+		if (disabled) return { backgroundColor: COLORS.disabledBG };
 		switch (variant) {
 			case "secondary":
 				return { backgroundColor: COLORS.state.care.primary };
@@ -43,7 +46,11 @@ export function Button({
 	};
 
 	const getTextStyle = (): TextStyle => ({
-		color: variant === "outline" ? COLORS.textPrimary : "#FFFFFF",
+		color: disabled
+			? COLORS.textSecondary
+			: variant === "outline"
+				? COLORS.textPrimary
+				: "#FFFFFF",
 		fontSize: size === "large" ? 18 : 16,
 		fontWeight: "600",
 		textAlign: "center",
@@ -51,15 +58,16 @@ export function Button({
 
 	return (
 		<Pressable
-			onPress={onPress}
+			onPress={disabled ? undefined : onPress}
 			accessibilityLabel={title}
 			accessibilityRole="button"
+			disabled={disabled}
 			style={({ pressed }) => [
 				styles.base,
 				getVariantStyles(),
 				size === "large" && styles.large,
 				fullWidth && styles.fullWidth,
-				pressed && {
+				pressed && !disabled && {
 					opacity: 0.7,
 					transform: [{ scale: TACTILE.activeScale }],
 				},

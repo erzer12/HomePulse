@@ -20,3 +20,16 @@ export async function closeDb(): Promise<void> {
 	}
 	_db = null;
 }
+
+export async function truncateDatabase(): Promise<void> {
+	const db = await getDb();
+	await db.execAsync(`
+		DELETE FROM sync_queue;
+		DELETE FROM caregiver_tasks;
+		DELETE FROM household_snapshots;
+		DELETE FROM symptom_entries;
+		DELETE FROM cases;
+		DELETE FROM patients;
+		VACUUM;
+	`);
+}

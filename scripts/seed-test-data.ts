@@ -1,18 +1,46 @@
 import type { Patient } from "../types/patient";
 
+const now = Date.now();
+
 const seededPatients: Patient[] = [
-	{ id: "p1", name: "Asha", age_group: "child", chronic_conditions: [] },
+	{ 
+		id: "p1", 
+		name: "Asha", 
+		age_group: "child", 
+		age_months: null,
+		chronic_conditions: [],
+		allergies: [],
+		medications: [],
+		emergency_contact_name: null,
+		emergency_contact_phone: null,
+		created_at: now,
+		updated_at: now
+	},
 	{
 		id: "p2",
 		name: "Rohan",
 		age_group: "adult",
+		age_months: null,
 		chronic_conditions: ["asthma"],
+		allergies: [],
+		medications: [],
+		emergency_contact_name: null,
+		emergency_contact_phone: null,
+		created_at: now,
+		updated_at: now
 	},
 	{
 		id: "p3",
 		name: "Maya",
 		age_group: "elderly",
+		age_months: null,
 		chronic_conditions: ["hypertension"],
+		allergies: [],
+		medications: [],
+		emergency_contact_name: null,
+		emergency_contact_phone: null,
+		created_at: now,
+		updated_at: now
 	},
 	{
 		id: "p4",
@@ -20,12 +48,25 @@ const seededPatients: Patient[] = [
 		age_group: "infant",
 		age_months: 4,
 		chronic_conditions: [],
+		allergies: [],
+		medications: [],
+		emergency_contact_name: null,
+		emergency_contact_phone: null,
+		created_at: now,
+		updated_at: now
 	},
 	{
 		id: "p5",
 		name: "Nina",
 		age_group: "child",
+		age_months: null,
 		chronic_conditions: ["allergy"],
+		allergies: [],
+		medications: [],
+		emergency_contact_name: null,
+		emergency_contact_phone: null,
+		created_at: now,
+		updated_at: now
 	},
 ];
 

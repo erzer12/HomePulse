@@ -21,6 +21,8 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { truncateDatabase } from "@/db/connection";
+import * as Updates from "expo-updates";
 
 interface SettingsRowProps {
 	label: string;
@@ -69,13 +71,21 @@ export default function SettingsScreen() {
 	const handleClearData = () => {
 		Alert.alert(
 			"Clear All Data",
-			"Are you sure? This will permanently delete all patient profiles, history, and active cases. This action cannot be undone.",
+			"Are you sure? This will permanently delete all patient profiles, history, and active cases. The app will restart.",
 			[
 				{ text: "Cancel", style: "cancel" },
 				{
 					text: "Delete Everything",
 					style: "destructive",
-					onPress: () => console.log("Data cleared"),
+					onPress: async () => {
+						try {
+							await truncateDatabase();
+							// Restart app to clear all memory stores
+							await Updates.reloadAsync();
+						} catch (e) {
+							console.error("Failed to clear data", e);
+						}
+					},
 				},
 			],
 		);
@@ -95,12 +105,12 @@ export default function SettingsScreen() {
 					<Text style={styles.sectionTitle}>Account</Text>
 					<Card variant="elevated" style={styles.accountCard}>
 						<View style={styles.avatarLarge}>
-							<Text style={styles.avatarTextLarge}>A</Text>
+							<Text style={styles.avatarTextLarge}>C</Text>
 						</View>
 						<View style={styles.accountInfo}>
-							<Text style={styles.accountName}>Abishek</Text>
+							<Text style={styles.accountName}>Caregiver</Text>
 							<Pressable>
-								<Text style={styles.editLink}>Edit Profile</Text>
+								<Text style={styles.editLink}>Primary Account</Text>
 							</Pressable>
 						</View>
 					</Card>
@@ -181,7 +191,7 @@ export default function SettingsScreen() {
 						<SettingsRow
 							label="Export All Health Data"
 							icon={<Download size={20} color={COLORS.textPrimary} />}
-							onPress={() => {}}
+							onPress={() => Alert.alert("Coming Soon", "Health data export will be available in the next release.")}
 						/>
 						<SettingsRow
 							label="Clear All Data"
@@ -196,7 +206,7 @@ export default function SettingsScreen() {
 				{/* Section 5: About */}
 				<View style={styles.aboutSection}>
 					<Text style={styles.versionText}>
-						HomePulse v1.0.0 (Hackathon Build)
+						HomePulse v1.0.0
 					</Text>
 					<Pressable style={styles.legalLink}>
 						<Text style={styles.legalText}>Legal & Privacy Policy</Text>

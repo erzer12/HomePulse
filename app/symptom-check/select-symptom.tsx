@@ -1,6 +1,6 @@
 import { Stack, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Linking } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { SymptomIcon } from "@/components/icons/SymptomIcon";
 import { Button } from "@/components/ui/Button";
@@ -8,16 +8,7 @@ import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
-
-const SYMPTOM_CATEGORIES = [
-	{ id: "fever", label: "Fever", icon: "Thermometer" },
-	{ id: "breathing", label: "Breathing", icon: "Lungs" },
-	{ id: "stomach", label: "Stomach", icon: "Droplets" },
-	{ id: "hydration", label: "Dehydration", icon: "Droplet" },
-	{ id: "confusion", label: "Confusion", icon: "Brain" },
-	{ id: "pain", label: "Pain", icon: "Activity" },
-	{ id: "weakness", label: "Weakness", icon: "Moon" },
-];
+import { SYMPTOMS } from "@/constants/symptoms";
 
 export default function SelectSymptomScreen() {
 	const router = useRouter();
@@ -32,6 +23,10 @@ export default function SelectSymptomScreen() {
 			if (patient) setPatientName(patient.name);
 		}
 	}, [activeCase, profiles]);
+
+	const handleEmergencyCall = () => {
+		Linking.openURL("tel:112");
+	};
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -55,13 +50,16 @@ export default function SelectSymptomScreen() {
 				</MotionView>
 
 				<View style={styles.grid}>
-					{SYMPTOM_CATEGORIES.map((symptom, index) => (
+					{SYMPTOMS.map((symptom, index) => (
 						<SymptomIcon
-							key={symptom.id}
+							key={symptom.category}
 							label={symptom.label}
-							iconName={symptom.icon}
+							iconName={symptom.iconName}
 							delay={100 + index * 40} // Staggered entry
-							onPress={() => router.push("/symptom-check/questionnaire")}
+							onPress={() => router.push({
+								pathname: "/symptom-check/questionnaire",
+								params: { category: symptom.category }
+							})}
 						/>
 					))}
 				</View>
@@ -72,7 +70,7 @@ export default function SelectSymptomScreen() {
 							title="Call Emergency Services (112)"
 							variant="outline"
 							style={styles.emergencyButton}
-							onPress={() => {}} // Integration for dialer
+							onPress={handleEmergencyCall}
 						/>
 					</View>
 				</MotionView>

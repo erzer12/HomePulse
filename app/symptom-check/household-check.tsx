@@ -14,6 +14,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useHouseholdStore } from "@/store/household";
+import { useCaseStore } from "@/store/case";
+import { getDb } from "@/db/connection";
+import { saveHouseholdSnapshot } from "@/db/queries/household";
+import type { SQLiteDatabase } from "@/db/connection";
 
 interface ReadinessRowProps {
 	label: string;
@@ -56,16 +61,35 @@ function ReadinessRow({ label, icon, available }: ReadinessRowProps) {
 export default function HouseholdCheckScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
+	const readiness = useHouseholdStore((s) => s.readiness);
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const evaluateCase = useCaseStore((s) => s.evaluateCase);
+	const [loading, setLoading] = useState(false);
 
-	// Mock readiness data (normally from useHouseholdStore)
-	const [readiness] = useState({
-		thermometer: true,
-		oximeter: false,
-		transport: true,
-		caregiver: true,
-		medicine: true,
-		distance: "1.5 km",
-	});
+	const handleConfirm = async () => {
+		if (!activeCase) {
+			router.push("/result/action-state");
+			return;
+		}
+
+		setLoading(true);
+		try {
+			const db = await getDb();
+			await saveHouseholdSnapshot(
+				db as unknown as SQLiteDatabase,
+				activeCase.id,
+				readiness
+			);
+			// Re-evaluate with the confirmed household resources
+			await evaluateCase(activeCase.id);
+			router.push("/result/action-state");
+		} catch (e) {
+			console.error("Failed to confirm household status", e);
+			router.push("/result/action-state"); // Fallback
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -92,11 +116,11 @@ export default function HouseholdCheckScreen() {
 							<Thermometer
 								size={20}
 								color={
-									readiness.thermometer ? COLORS.primary : COLORS.textSecondary
+									readiness.has_thermometer ? COLORS.primary : COLORS.textSecondary
 								}
 							/>
 						}
-						available={readiness.thermometer}
+						available={readiness.has_thermometer}
 					/>
 					<ReadinessRow
 						label="Pulse Oximeter"
@@ -104,11 +128,11 @@ export default function HouseholdCheckScreen() {
 							<Activity
 								size={20}
 								color={
-									readiness.oximeter ? COLORS.primary : COLORS.textSecondary
+									readiness.has_oximeter ? COLORS.primary : COLORS.textSecondary
 								}
 							/>
 						}
-						available={readiness.oximeter}
+						available={readiness.has_oximeter}
 					/>
 					<ReadinessRow
 						label="Reliable Transport"
@@ -116,11 +140,11 @@ export default function HouseholdCheckScreen() {
 							<Car
 								size={20}
 								color={
-									readiness.transport ? COLORS.primary : COLORS.textSecondary
+									readiness.transport_available ? COLORS.primary : COLORS.textSecondary
 								}
 							/>
 						}
-						available={readiness.transport}
+						available={readiness.transport_available}
 					/>
 					<ReadinessRow
 						label="Overnight Help"
@@ -128,11 +152,11 @@ export default function HouseholdCheckScreen() {
 							<Moon
 								size={20}
 								color={
-									readiness.caregiver ? COLORS.primary : COLORS.textSecondary
+									readiness.overnight_caregiver ? COLORS.primary : COLORS.textSecondary
 								}
 							/>
 						}
-						available={readiness.caregiver}
+						available={readiness.overnight_caregiver}
 					/>
 					<ReadinessRow
 						label="Basic Meds Stocked"
@@ -140,31 +164,33 @@ export default function HouseholdCheckScreen() {
 							<Pill
 								size={20}
 								color={
-									readiness.medicine ? COLORS.primary : COLORS.textSecondary
+									readiness.medicine_stock ? COLORS.primary : COLORS.textSecondary
 								}
 							/>
 						}
-						available={readiness.medicine}
+						available={readiness.medicine_stock}
 					/>
 					<View style={[styles.row, styles.noBorder]}>
 						<View style={styles.iconBox}>
 							<MapPin size={20} color={COLORS.primary} />
 						</View>
 						<Text style={styles.rowLabel}>Pharmacy Distance</Text>
-						<Text style={styles.distanceValue}>{readiness.distance}</Text>
+						<Text style={styles.distanceValue}>{readiness.pharmacy_distance_km} km</Text>
 					</View>
 				</Card>
 
 				<View style={styles.footer}>
 					<Button
-						title="All Correct — Analyze Results"
-						onPress={() => router.push("/result/action-state")}
+						title={loading ? "Analyzing..." : "All Correct — Analyze Results"}
+						onPress={handleConfirm}
+						disabled={loading}
 					/>
 					<Button
 						title="Update Resources"
 						variant="outline"
 						onPress={() => router.push("/onboarding/household-setup")}
 						style={styles.updateButton}
+						disabled={loading}
 					/>
 				</View>
 			</ScrollView>

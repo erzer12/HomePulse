@@ -26,10 +26,26 @@ export async function publishCaseSummary(summary: CaseSummary): Promise<void> {
 			state_level: summary.state_level,
 			tasks: summary.tasks || [],
 			expires_at: Date.now() + 48 * 3600 * 1000,
-		},
-		{ returning: "minimal" },
+		}
 	);
 	if (error) throw error;
+}
+
+export async function getCaseSummary(token: string): Promise<CaseSummary | null> {
+	const { data, error } = await supabase
+		.from("case_summaries")
+		.select("*")
+		.eq("token", token)
+		.single();
+	
+	if (error || !data) return null;
+	return {
+		token: data.token,
+		case_id: data.case_id,
+		created_at: data.created_at,
+		state_level: data.state_level,
+		tasks: data.tasks,
+	};
 }
 
 export async function updateTaskStatus(

@@ -38,30 +38,8 @@ export default function HomeScreen() {
 		}, [activeCase, profiles])
 	);
 
-	// Map ActionState level to data for ActionStateCard
-	const getActionStateData = (level?: number): ActionState => {
-		const defaultState: ActionState = {
-			level: 1,
-			label: "Monitor",
-			explanation: "Keep observing for changes.",
-			triggers: [],
-			redFlags: [],
-			recheckIntervalMinutes: 240,
-		};
-
-		if (!level) return defaultState;
-
-		switch (level) {
-			case 4:
-				return { level: 4, label: "Urgent Care", explanation: "Seek medical help immediately.", triggers: [], redFlags: [], recheckIntervalMinutes: 0 };
-			case 3:
-				return { level: 3, label: "Consultation", explanation: "Arrange a teleconsultation or visit a clinic.", triggers: [], redFlags: [], recheckIntervalMinutes: 60 };
-			case 2:
-				return { level: 2, label: "Guided Care", explanation: "Manage symptoms at home with tracking.", triggers: [], redFlags: [], recheckIntervalMinutes: 120 };
-			default:
-				return defaultState;
-		}
-	};
+	// Use engine-provided action state if available
+	const stateData = activeCase?.triage_output?.action_state || activeCase?.current_action_state;
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -100,13 +78,14 @@ export default function HomeScreen() {
 								</View>
 								<Text style={styles.patientName}>{patientName}</Text>
 							</View>
-							<ActionStateCard
-								state={getActionStateData(
-									(activeCase as unknown as { current_action_state: number })
-										.current_action_state,
-								)}
-								showExplanation={true}
-							/>
+							{stateData ? (
+								<ActionStateCard
+									state={stateData as ActionState}
+									showExplanation={true}
+								/>
+							) : (
+								<Text style={styles.emptyText}>Case started, no evaluation yet.</Text>
+							)}
 						</Card>
 					</View>
 				) : (

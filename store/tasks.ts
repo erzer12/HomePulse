@@ -40,7 +40,7 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 				db as unknown as SQLiteDatabase,
 				caseId,
 			);
-			set((s) => ({ tasks: { ...s.tasks, [caseId]: rows }, loading: false }));
+			set((s) => ({ tasks: { ...s.tasks, [caseId]: rows as TaskItem[] }, loading: false }));
 			return rows as TaskItem[];
 		} catch (e: unknown) {
 			set({
@@ -54,17 +54,17 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 		set({ loading: true, error: null });
 		try {
 			const db = await getDb();
-			const t = await taskQueries.createTask(
+			const t = (await taskQueries.createTask(
 				db as unknown as SQLiteDatabase,
 				caseId,
 				title,
 				description,
-			);
+			)) as TaskItem;
 			set((s) => ({
 				tasks: { ...s.tasks, [caseId]: [t, ...(s.tasks[caseId] || [])] },
 				loading: false,
 			}));
-			return t as TaskItem;
+			return t;
 		} catch (e: unknown) {
 			set({
 				error: e instanceof Error ? e.message : String(e),
