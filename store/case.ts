@@ -9,7 +9,7 @@ import type { CaseSummary } from "../services/supabase";
 import { publishCaseSummary } from "../services/supabase";
 import { enqueueSyncOperation } from "../services/sync";
 import type { CaseRecord } from "../types/case";
-import type { SymptomEntry, TriageInput, TriageOutput } from "../types/triage";
+import type { AgeGroup, HouseholdReadiness, SymptomEntry, TriageInput, TriageOutput } from "../types/triage";
 
 interface CaseState {
 	activeCase?: CaseRecord | undefined;
@@ -60,14 +60,14 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 				patientId,
 			);
 			if (row) {
-				const c = row as any;
-				if (c.triage_output) {
-					c.triage_output = JSON.parse(c.triage_output);
-					c.current_action_state = c.triage_output.action_state;
+				const c = row as unknown as CaseRecord;
+				if (row.triage_output) {
+					c.triage_output = JSON.parse(row.triage_output as string);
+					c.current_action_state = c.triage_output?.action_state;
 				}
 				// Load timeline if needed, or ensure it's at least an array
 				c.timeline = await caseQueries.getSymptomHistory(db as unknown as SQLiteDatabase, c.id);
-				set({ activeCase: c as CaseRecord, loading: false });
+				set({ activeCase: c, loading: false });
 			} else {
 				set({ activeCase: undefined, loading: false });
 			}
@@ -85,13 +85,13 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 			const rows = await caseQueries.getActiveCases(db as unknown as SQLiteDatabase);
 			const row = rows[0];
 			if (row) {
-				const c = row as any;
-				if (c.triage_output) {
-					c.triage_output = JSON.parse(c.triage_output);
-					c.current_action_state = c.triage_output.action_state;
+				const c = row as unknown as CaseRecord;
+				if (row.triage_output) {
+					c.triage_output = JSON.parse(row.triage_output as string);
+					c.current_action_state = c.triage_output?.action_state;
 				}
 				c.timeline = await caseQueries.getSymptomHistory(db as unknown as SQLiteDatabase, c.id);
-				set({ activeCase: c as CaseRecord, loading: false });
+				set({ activeCase: c, loading: false });
 			} else {
 				set({ activeCase: undefined, loading: false });
 			}
@@ -108,16 +108,10 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 			const db = await getDb();
 			await caseQueries.appendSymptomEntry(
 				db as unknown as SQLiteDatabase,
-				entry as any,
+				entry,
 			);
 			
 			// Refresh local active case to include new entry in timeline
-			set((state) => {
-				if (state.activeCase && state.activeCase.id === entry.id) {
-					// This logic is slightly wrong because entry.id is not caseId
-				}
-				return {};
-			});
 			set({ loading: false });
 		} catch (e: unknown) {
 			set({
@@ -139,24 +133,27 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 			const latest = history[history.length - 1];
 			if (!latest) throw new Error("No symptom entries for case");
 			
-			const patientRow = await db.getFirstAsync(
-				"SELECT * FROM cases JOIN patients ON cases.patient_id = patients.id WHERE cases.id = ?",
+			const patientRow = await db.getFirstAsync<{
+				age_group: string;
+				age_months: number | null;
+				chronic_conditions: string;
+			}>(
+				"SELECT patients.age_group, patients.age_months, patients.chronic_conditions FROM cases JOIN patients ON cases.patient_id = patients.id WHERE cases.id = ?",
 				[caseId],
 			);
 			
-			const p = patientRow as any;
 			const input: TriageInput = {
 				patient: {
-					age_group: p?.age_group || "adult",
-					age_months: p?.age_months,
-					chronic_conditions: JSON.parse(p?.chronic_conditions || "[]"),
+					age_group: (patientRow?.age_group || "adult") as AgeGroup,
+					age_months: patientRow?.age_months ?? undefined,
+					chronic_conditions: JSON.parse(patientRow?.chronic_conditions || "[]"),
 				},
 				symptom: latest,
 				symptom_history: history.slice(0, -1),
-				household: (await db.getFirstAsync(
+				household: ((await db.getFirstAsync(
 					"SELECT * FROM household_snapshots WHERE case_id = ? ORDER BY timestamp DESC LIMIT 1",
 					[caseId],
-				)) || {
+				)) as HouseholdReadiness) || {
 					has_thermometer: false,
 					has_oximeter: false,
 					transport_available: true,
@@ -227,8 +224,8 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 
 			// Attempt to publish a case summary to Supabase; on failure enqueue for retry
 			try {
-				const caseRow = await db.getFirstAsync<any>(
-					"SELECT * FROM cases WHERE id = ?",
+				const caseRow = await db.getFirstAsync<{ current_action_state: number }>(
+					"SELECT current_action_state FROM cases WHERE id = ?",
 					[caseId],
 				);
 				const stateLevel = caseRow?.current_action_state || 1;
@@ -240,8 +237,8 @@ export const useCaseStore = create<CaseState>((set, _get) => ({
 					token,
 					case_id: caseId,
 					created_at: Date.now(),
-					state_level: stateLevel as number,
-					tasks: tasks.map((t: any) => ({
+					state_level: stateLevel,
+					tasks: tasks.map((t) => ({
 						id: t.id,
 						title: t.title,
 						status: t.status as "pending" | "done",

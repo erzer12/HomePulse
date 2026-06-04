@@ -5,7 +5,7 @@ import { TaskList } from "@/components/caregiver/TaskList";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Card } from "@/components/ui/Card";
 import { COLORS, SPACING } from "@/constants/colors";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getCaseSummary } from "@/services/supabase";
 import type { CaseSummary } from "@/services/supabase";
 import { buildActionState } from "@/engine";
@@ -16,13 +16,7 @@ export default function SharedViewScreen() {
 	const [summary, setSummary] = useState<CaseSummary | null>(null);
 	const [loading, setLoading] = useState(true);
 
-	useEffect(() => {
-		if (token) {
-			fetchSummary();
-		}
-	}, [token]);
-
-	const fetchSummary = async () => {
+	const fetchSummary = useCallback(async () => {
 		setLoading(true);
 		try {
 			const data = await getCaseSummary(token as string);
@@ -32,7 +26,13 @@ export default function SharedViewScreen() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [token]);
+
+	useEffect(() => {
+		if (token) {
+			fetchSummary();
+		}
+	}, [token, fetchSummary]);
 
 	if (loading) {
 		return (

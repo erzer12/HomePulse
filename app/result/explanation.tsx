@@ -138,8 +138,8 @@ export default function ExplanationScreen() {
 							<Text style={styles.sectionTitle}>Home Care Steps</Text>
 						</View>
 						<Card variant="elevated" style={styles.contentCard}>
-							{triageOutput.care_instructions.map((step: string, i: number) => (
-								<View key={`care-${i}`} style={styles.listRow}>
+						{triageOutput.care_instructions.map((step: string, i: number) => (
+								<View key={step} style={styles.listRow}>
 									<View style={styles.listNumber}>
 										<Text style={styles.listNumberText}>{i + 1}</Text>
 									</View>
@@ -165,8 +165,8 @@ export default function ExplanationScreen() {
 							</Text>
 						</View>
 						<Card style={[styles.contentCard, styles.urgentCard]}>
-							{triageOutput.red_flags.map((trigger: string, i: number) => (
-								<View key={`trigger-${i}`} style={styles.triggerRow}>
+							{triageOutput.red_flags.map((trigger: string) => (
+								<View key={trigger} style={styles.triggerRow}>
 									<View style={styles.triggerDot} />
 									<Text style={styles.triggerText}>{trigger}</Text>
 								</View>

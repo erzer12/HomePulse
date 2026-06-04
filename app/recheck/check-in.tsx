@@ -1,7 +1,7 @@
 import { Stack, useRouter } from "expo-router";
 import { Activity, Droplet, Thermometer } from "lucide-react-native";
 import { useState, useEffect } from "react";
-import { ScrollView, StyleSheet, Text, TextInput, View, Pressable } from "react-native";
+import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
@@ -47,8 +47,8 @@ export default function CheckInScreen() {
 			category: latestEntry?.category || "general",
 			duration_hours: latestEntry?.duration_hours || 0,
 			temperature_celsius: temp ? Number.parseFloat(temp) : undefined,
-			hydration_status: hydration as any,
-			consciousness: alertness as any,
+			hydration_status: hydration as SymptomEntry["hydration_status"],
+			consciousness: alertness as SymptomEntry["consciousness"],
 			breathing_difficulty: !!latestEntry?.breathing_difficulty,
 		};
 

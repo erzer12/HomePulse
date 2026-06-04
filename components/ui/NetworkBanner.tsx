@@ -1,5 +1,5 @@
 import { useNetInfo } from "@react-native-community/netinfo";
-import { WifiOff, CloudUpload, CloudCheck } from "lucide-react-native";
+import { WifiOff, CloudUpload } from "lucide-react-native";
 import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { COLORS, SPACING } from "@/constants/colors";
 import { useSyncStore } from "@/store/sync";

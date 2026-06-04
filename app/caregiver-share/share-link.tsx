@@ -7,7 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as Clipboard from "expo-clipboard";
 
 export default function ShareLinkScreen() {
@@ -24,13 +24,7 @@ export default function ShareLinkScreen() {
 	
 	const shareUrl = token ? `homepulse://case/${token}` : "Generating link...";
 
-	useEffect(() => {
-		if (activeCase && !token) {
-			generateToken();
-		}
-	}, [activeCase]);
-
-	const generateToken = async () => {
+	const generateToken = useCallback(async () => {
 		if (!activeCase) return;
 		setLoading(true);
 		try {
@@ -41,7 +35,13 @@ export default function ShareLinkScreen() {
 		} finally {
 			setLoading(false);
 		}
-	};
+	}, [activeCase, setShareToken]);
+
+	useEffect(() => {
+		if (activeCase && !token) {
+			generateToken();
+		}
+	}, [activeCase, token, generateToken]);
 
 	const onShare = async () => {
 		if (!token) return;

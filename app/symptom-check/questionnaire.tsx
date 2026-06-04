@@ -19,7 +19,7 @@ import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
 import { createUuid } from "@/utils/ids";
-import type { SymptomEntry } from "@/types/triage";
+import type { SymptomEntry, SymptomCategory } from "@/types/triage";
 
 export default function QuestionnaireScreen() {
 	const router = useRouter();
@@ -135,11 +135,11 @@ export default function QuestionnaireScreen() {
 			id: createUuid(),
 			case_id: activeCase.id,
 			timestamp: Date.now(),
-			category: (params.category as any) || "fever",
+			category: (params.category as SymptomCategory) || "fever",
 			duration_hours: answers.duration === "<2d" ? 24 : answers.duration === "2-5d" ? 72 : 144,
 			temperature_celsius: answers.temperature as number || undefined,
-			hydration_status: (answers.is_drinking as any) || "normal",
-			consciousness: (answers.alertness as any) || "alert",
+			hydration_status: (answers.is_drinking as SymptomEntry["hydration_status"]) || "normal",
+			consciousness: (answers.alertness as SymptomEntry["consciousness"]) || "alert",
 			breathing_difficulty: !!answers.breathing_diff,
 		};
 

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
-import type { ActionState } from "@/types/triage";
 
 export default function ActionStateScreen() {
 	const router = useRouter();
@@ -64,8 +63,8 @@ export default function ActionStateScreen() {
 				{triageOutput?.care_instructions && triageOutput.care_instructions.length > 0 && (
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>Immediate Care Steps</Text>
-						{triageOutput.care_instructions.map((step: string, index: number) => (
-							<Card key={`step-${index}`} style={styles.stepCard}>
+						{triageOutput.care_instructions.map((step: string) => (
+							<Card key={step} style={styles.stepCard}>
 								<View style={styles.stepIcon}>
 									<CheckCircle2 size={20} color={COLORS.state.care.primary} />
 								</View>
