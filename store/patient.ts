@@ -50,8 +50,17 @@ export const usePatientStore = create<PatientState>((set, _get) => ({
 				db as unknown as SQLiteDatabase,
 				data as PatientInput,
 			);
-			set((s) => ({ profiles: [...s.profiles, p], loading: false }));
-			return p;
+			const patient: Patient = {
+				...p,
+				age_months: p.age_months ?? null,
+				chronic_conditions: p.chronic_conditions || [],
+				allergies: p.allergies || [],
+				medications: p.medications || [],
+				emergency_contact_name: p.emergency_contact_name ?? null,
+				emergency_contact_phone: p.emergency_contact_phone ?? null,
+			};
+			set((s) => ({ profiles: [...s.profiles, patient], loading: false }));
+			return patient;
 		} catch (e: unknown) {
 			set({
 				error: e instanceof Error ? e.message : String(e),

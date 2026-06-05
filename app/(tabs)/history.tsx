@@ -7,7 +7,8 @@ import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
 import { useCaseStore } from "@/store/case";
-import type { SymptomEntry } from "@/types/triage";
+import type { SymptomEntry, ActionState } from "@/types/triage";
+import { buildActionState } from "@/engine";
 
 export default function HistoryScreen() {
 	const insets = useSafeAreaInsets();
@@ -20,12 +21,12 @@ export default function HistoryScreen() {
 		}, [loadLatestActiveCase])
 	);
 
-	const getActionStateInfo = (level: number) => {
+	const getActionStateTheme = (level: number) => {
 		switch (level) {
-			case 4: return { label: "Urgent Care", theme: COLORS.state.urgent };
-			case 3: return { label: "Consultation", theme: COLORS.state.teleconsult };
-			case 2: return { label: "Guided Care", theme: COLORS.state.care };
-			default: return { label: "Monitor", theme: COLORS.state.monitor };
+			case 4: return COLORS.state.urgent;
+			case 3: return COLORS.state.teleconsult;
+			case 2: return COLORS.state.care;
+			default: return COLORS.state.monitor;
 		}
 	};
 
@@ -45,8 +46,9 @@ export default function HistoryScreen() {
 		item: SymptomEntry;
 		index: number;
 	}) => {
-		const triage = JSON.parse(item.triage_output || "{}");
-		const stateInfo = getActionStateInfo(triage.action_state || 1);
+		const triage = item.triage_output ? JSON.parse(item.triage_output) : null;
+		const stateData: ActionState = triage?.action_state || buildActionState(1);
+		const theme = getActionStateTheme(stateData.level);
 		
 		return (
 			<MotionView delay={index * DURATION.stagger} style={styles.entryContainer}>
@@ -57,7 +59,7 @@ export default function HistoryScreen() {
 					<View
 						style={[
 							styles.timelineDot,
-							{ backgroundColor: stateInfo.theme.primary },
+							{ backgroundColor: theme.primary },
 						]}
 					/>
 				</View>
@@ -68,11 +70,11 @@ export default function HistoryScreen() {
 						<View
 							style={[
 								styles.badge,
-								{ backgroundColor: stateInfo.theme.surface },
+								{ backgroundColor: theme.surface },
 							]}
 						>
-							<Text style={[styles.badgeText, { color: stateInfo.theme.text }]}>
-								{stateInfo.label}
+							<Text style={[styles.badgeText, { color: theme.text }]}>
+								{stateData.label}
 							</Text>
 						</View>
 					</View>
@@ -96,7 +98,7 @@ export default function HistoryScreen() {
 						</View>
 					</View>
 
-					{triage.reasoning && (
+					{triage?.reasoning && (
 						<Text style={styles.notes} numberOfLines={3}>
 							{triage.reasoning}
 						</Text>
@@ -107,6 +109,7 @@ export default function HistoryScreen() {
 	};
 
 	const timeline = activeCase?.timeline || [];
+	const currentActionState = activeCase?.current_action_state;
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -132,7 +135,7 @@ export default function HistoryScreen() {
 							<Text style={styles.summaryDetail}>
 								{activeCase ? `Ongoing Journey` : "No active case"}
 							</Text>
-							{activeCase && (
+							{activeCase && currentActionState && (
 								<View style={styles.summaryStateRow}>
 									<Text style={styles.summaryStateLabel}>Status:</Text>
 									<Text
@@ -141,7 +144,7 @@ export default function HistoryScreen() {
 											{ color: COLORS.state.care.text },
 										]}
 									>
-										{getActionStateInfo(activeCase.current_action_state || 1).label}
+										{currentActionState.label}
 									</Text>
 								</View>
 							)}

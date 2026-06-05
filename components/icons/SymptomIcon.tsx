@@ -19,9 +19,15 @@ export function SymptomIcon({
 	selected,
 	delay = 0,
 }: SymptomIconProps) {
+	// Transform kebab-case (e.g. battery-low) to PascalCase (e.g. BatteryLow)
+	const pascalName = iconName
+		.split("-")
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join("");
+
 	// Dynamically resolve icon from lucide-react-native
 	const IconComponent =
-		((LucideIcons as Record<string, unknown>)[iconName] as React.ElementType) ||
+		((LucideIcons as Record<string, React.ElementType>)[pascalName]) ||
 		LucideIcons.Activity;
 
 	return (

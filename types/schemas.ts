@@ -22,6 +22,7 @@ export const Consciousness = z.enum([
 
 export const SymptomEntry = z.object({
 	id: z.string().uuid().optional(),
+	case_id: z.string(),
 	timestamp: z.number().int(),
 	category: SymptomCategory,
 	duration_hours: z.number(),
@@ -31,6 +32,7 @@ export const SymptomEntry = z.object({
 	consciousness: Consciousness,
 	breathing_difficulty: z.boolean(),
 	notes: z.string().optional(),
+	triage_output: z.string().optional(),
 });
 
 export type SymptomEntryType = z.infer<typeof SymptomEntry>;

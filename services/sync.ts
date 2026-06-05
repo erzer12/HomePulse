@@ -2,6 +2,7 @@ import { getDb } from "@/db/connection";
 import { createCompactId } from "../utils/ids";
 import type { CaseSummary } from "./supabase";
 import { publishCaseSummary, updateTaskStatus } from "./supabase";
+import { useSyncStore } from "../store/sync";
 
 type SyncRow = {
 	id: string;
@@ -49,6 +50,9 @@ export async function enqueueSyncOperation(
 			Date.now(),
 		],
 	);
+	
+	// Refresh pending count
+	useSyncStore.getState().checkPending();
 }
 
 export async function flushSyncQueue(limit = 50) {
@@ -57,6 +61,11 @@ export async function flushSyncQueue(limit = 50) {
 		`SELECT * FROM sync_queue WHERE retry_count < max_retries ORDER BY priority ASC, created_at ASC LIMIT ?`,
 		[limit],
 	);
+
+	if (rows.length === 0) return;
+
+	const { setSyncing, checkPending, setError } = useSyncStore.getState();
+	setSyncing(true);
 
 	for (const row of rows) {
 		try {
@@ -86,6 +95,10 @@ export async function flushSyncQueue(limit = 50) {
 				`UPDATE sync_queue SET retry_count = ?, last_error = ? WHERE id = ?`,
 				[nextRetry, lastError, row.id],
 			);
+			setError(lastError);
 		}
 	}
+	
+	await checkPending();
+	setSyncing(false);
 }

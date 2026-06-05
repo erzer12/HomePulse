@@ -9,7 +9,7 @@ export function SymptomIconGrid() {
 				<SymptomIcon
 					key={symptom.category}
 					label={symptom.label}
-					color={symptom.color}
+					iconName={symptom.iconName}
 				/>
 			))}
 		</View>

@@ -1,31 +1,56 @@
-import { Stack } from "expo-router";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { Stack, useLocalSearchParams } from "expo-router";
+import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TaskList } from "@/components/caregiver/TaskList";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Card } from "@/components/ui/Card";
 import { COLORS, SPACING } from "@/constants/colors";
-
-// Mock data based on the Google Stitch design
-const MOCK_STATE = {
-	level: 2,
-	label: "Guided Home Care",
-	explanation:
-		"Symptoms require active management. Follow the care instructions below.",
-};
-
-const MOCK_TASKS = [
-	{ id: "1", title: "Check temperature in 30 minutes", done: false },
-	{
-		id: "2",
-		title: "Offer fluids (ORS or water) every 20 minutes",
-		done: false,
-	},
-	{ id: "3", title: "Prepare transport just in case", done: false },
-];
+import { useState, useEffect, useCallback } from "react";
+import { getCaseSummary } from "@/services/supabase";
+import type { CaseSummary } from "@/services/supabase";
+import { buildActionState } from "@/engine";
 
 export default function SharedViewScreen() {
 	const insets = useSafeAreaInsets();
+	const { token } = useLocalSearchParams();
+	const [summary, setSummary] = useState<CaseSummary | null>(null);
+	const [loading, setLoading] = useState(true);
+
+	const fetchSummary = useCallback(async () => {
+		setLoading(true);
+		try {
+			const data = await getCaseSummary(token as string);
+			setSummary(data);
+		} catch (e) {
+			console.error("Failed to fetch shared summary", e);
+		} finally {
+			setLoading(false);
+		}
+	}, [token]);
+
+	useEffect(() => {
+		if (token) {
+			fetchSummary();
+		}
+	}, [token, fetchSummary]);
+
+	if (loading) {
+		return (
+			<View style={[styles.container, styles.center]}>
+				<ActivityIndicator size="large" color={COLORS.primary} />
+			</View>
+		);
+	}
+
+	if (!summary) {
+		return (
+			<View style={[styles.container, styles.center]}>
+				<Text style={styles.errorText}>Shared case not found or link expired.</Text>
+			</View>
+		);
+	}
+
+	const updatedTime = new Date(summary.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -41,18 +66,20 @@ export default function SharedViewScreen() {
 			<ScrollView contentContainerStyle={styles.scrollContent}>
 				{/* Patient Summary Card */}
 				<Card variant="elevated" style={styles.summaryCard}>
-					<Text style={styles.summaryLabel}>Patient: Child</Text>
-					<Text style={styles.summaryTimestamp}>Last updated: 12 mins ago</Text>
+					<Text style={styles.summaryLabel}>Patient Summary View</Text>
+					<Text style={styles.summaryTimestamp}>Last updated: {updatedTime}</Text>
 				</Card>
 
 				<View style={styles.section}>
-					<ActionStateCard state={MOCK_STATE} />
+					<ActionStateCard state={buildActionState(summary.state_level as 1 | 2 | 3 | 4)} />
 				</View>
 
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Assigned Tasks</Text>
-					<TaskList tasks={MOCK_TASKS} />
-				</View>
+				{summary.tasks && summary.tasks.length > 0 && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>Assigned Tasks</Text>
+						<TaskList tasks={summary.tasks.map(t => ({ id: t.id, title: t.title, done: t.status === "done" }))} />
+					</View>
+				)}
 
 				<View style={styles.footer}>
 					<Text style={styles.disclaimer}>
@@ -69,6 +96,10 @@ const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: COLORS.background,
+	},
+	center: {
+		justifyContent: 'center',
+		alignItems: 'center',
 	},
 	scrollContent: {
 		padding: SPACING.screenEdge,
@@ -107,5 +138,11 @@ const styles = StyleSheet.create({
 		color: COLORS.textSecondary,
 		textAlign: "center",
 		lineHeight: 20,
+	},
+	errorText: {
+		fontSize: 16,
+		color: COLORS.textSecondary,
+		textAlign: 'center',
+		padding: SPACING.xl,
 	},
 });

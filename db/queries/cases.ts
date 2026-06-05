@@ -29,7 +29,6 @@ export async function appendSymptomEntry(
 	db: SQLiteDatabase,
 	entry: SymptomEntryType & {
 		raw_inputs?: Record<string, unknown>;
-		triage_output?: TriageOutputType | null;
 	},
 ) {
 	await db.runAsync(
@@ -46,7 +45,7 @@ export async function appendSymptomEntry(
 			entry.consciousness,
 			entry.breathing_difficulty ? 1 : 0,
 			JSON.stringify(entry.raw_inputs || {}),
-			entry.triage_output ? JSON.stringify(entry.triage_output) : null,
+			entry.triage_output || null,
 		],
 	);
 }
@@ -64,8 +63,13 @@ export async function updateCaseState(
 	triageOutput: TriageOutputType,
 ) {
 	await db.runAsync(
-		`UPDATE cases SET current_action_state = ?, last_evaluated_at = ? WHERE id = ?`,
-		[triageOutput.action_state.level, Date.now(), caseId],
+		`UPDATE cases SET current_action_state = ?, triage_output = ?, last_evaluated_at = ? WHERE id = ?`,
+		[
+			triageOutput.action_state.level,
+			JSON.stringify(triageOutput),
+			Date.now(),
+			caseId,
+		],
 	);
 }
 

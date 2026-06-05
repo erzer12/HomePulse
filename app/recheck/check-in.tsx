@@ -1,14 +1,72 @@
 import { Stack, useRouter } from "expo-router";
 import { Activity, Droplet, Thermometer } from "lucide-react-native";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
+import { createUuid } from "@/utils/ids";
+import type { SymptomEntry } from "@/types/triage";
 
 export default function CheckInScreen() {
 	const router = useRouter();
-	const [temp, setTemp] = useState("38.2");
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const profiles = usePatientStore((s) => s.profiles);
+	const appendSymptomEntry = useCaseStore((s) => s.appendSymptomEntry);
+	const evaluateCase = useCaseStore((s) => s.evaluateCase);
+
+	const [patientName, setPatientName] = useState("the person");
+	const [temp, setTemp] = useState("");
+	const [hydration, setHydration] = useState("normal");
+	const [alertness, setAlertness] = useState("alert");
+	const [loading, setLoading] = useState(false);
+
+	useEffect(() => {
+		if (activeCase && profiles.length > 0) {
+			const patient = profiles.find((p) => p.id === activeCase.patient_id);
+			if (patient) setPatientName(patient.name);
+		}
+	}, [activeCase, profiles]);
+
+	const handleAnalyze = async () => {
+		if (!activeCase) return;
+		
+		setLoading(true);
+		const previousLevel = typeof activeCase.current_action_state === 'object' 
+			? activeCase.current_action_state.level 
+			: (activeCase.current_action_state || 1);
+		
+		const latestEntry = activeCase.timeline?.[activeCase.timeline.length - 1];
+		
+		const entry: SymptomEntry = {
+			id: createUuid(),
+			case_id: activeCase.id,
+			timestamp: Date.now(),
+			category: latestEntry?.category || "general",
+			duration_hours: latestEntry?.duration_hours || 0,
+			temperature_celsius: temp ? Number.parseFloat(temp) : undefined,
+			hydration_status: hydration as SymptomEntry["hydration_status"],
+			consciousness: alertness as SymptomEntry["consciousness"],
+			breathing_difficulty: !!latestEntry?.breathing_difficulty,
+		};
+
+		try {
+			await appendSymptomEntry(entry);
+			const output = await evaluateCase(activeCase.id);
+			
+			if (output.action_state.level > previousLevel) {
+				router.push("/recheck/escalation-alert");
+			} else {
+				router.push("/result/action-state");
+			}
+		} catch (e) {
+			console.error("Failed to save recheck", e);
+		} finally {
+			setLoading(false);
+		}
+	};
 
 	return (
 		<View style={styles.container}>
@@ -22,7 +80,7 @@ export default function CheckInScreen() {
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
 				<View style={styles.header}>
-					<Text style={styles.title}>Update Rohan's Status</Text>
+					<Text style={styles.title}>Update {patientName}'s Status</Text>
 					<Text style={styles.subtitle}>
 						Let's see if the symptoms have changed.
 					</Text>
@@ -46,6 +104,7 @@ export default function CheckInScreen() {
 							value={temp}
 							onChangeText={setTemp}
 							keyboardType="decimal-pad"
+							placeholder="--"
 						/>
 						<Text style={styles.unit}>°C</Text>
 					</View>
@@ -64,12 +123,17 @@ export default function CheckInScreen() {
 						<Text style={styles.label}>Hydration Level</Text>
 					</View>
 					<View style={styles.optionGrid}>
-						{["Normal", "Reduced", "Poor"].map((level) => (
+						{[
+							{ id: "normal", label: "Normal" },
+							{ id: "reduced", label: "Reduced" },
+							{ id: "poor", label: "Poor" }
+						].map((opt) => (
 							<Button
-								key={level}
-								title={level}
-								variant={level === "Normal" ? "primary" : "outline"}
+								key={opt.id}
+								title={opt.label}
+								variant={hydration === opt.id ? "primary" : "outline"}
 								size="normal"
+								onPress={() => setHydration(opt.id)}
 								style={styles.optionButton}
 								fullWidth={false}
 							/>
@@ -90,12 +154,17 @@ export default function CheckInScreen() {
 						<Text style={styles.label}>Alertness</Text>
 					</View>
 					<View style={styles.optionGrid}>
-						{["Alert", "Sleepy", "Drowsy"].map((level) => (
+						{[
+							{ id: "alert", label: "Alert" },
+							{ id: "lethargic", label: "Sleepy" },
+							{ id: "confused", label: "Confused" }
+						].map((opt) => (
 							<Button
-								key={level}
-								title={level}
-								variant={level === "Alert" ? "primary" : "outline"}
+								key={opt.id}
+								title={opt.label}
+								variant={alertness === opt.id ? "primary" : "outline"}
 								size="normal"
+								onPress={() => setAlertness(opt.id)}
 								style={styles.optionButton}
 								fullWidth={false}
 							/>
@@ -105,8 +174,9 @@ export default function CheckInScreen() {
 
 				<View style={styles.footer}>
 					<Button
-						title="Analyze Update"
-						onPress={() => router.push("/result/action-state")}
+						title={loading ? "Analyzing..." : "Analyze Update"}
+						onPress={handleAnalyze}
+						disabled={loading}
 					/>
 				</View>
 			</ScrollView>
@@ -172,6 +242,8 @@ const styles = StyleSheet.create({
 		fontSize: 48,
 		fontWeight: "800",
 		color: COLORS.textPrimary,
+		textAlign: 'center',
+		minWidth: 100,
 	},
 	unit: {
 		fontSize: 24,

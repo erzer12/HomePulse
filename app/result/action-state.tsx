@@ -1,41 +1,36 @@
 import { Stack, useRouter } from "expo-router";
 import { CheckCircle2, ChevronRight, Clock, Share2 } from "lucide-react-native";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { ScrollView, StyleSheet, Text, View, Pressable } from "react-native";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
-
-// Mock data for State 2 (Guided Home Care)
-const MOCK_RESULT = {
-	state: {
-		level: 2,
-		label: "Guided Home Care",
-		explanation:
-			"Rohan's symptoms require active management at home. Follow the care steps below and recheck in 4 hours.",
-	},
-	nextSteps: [
-		{
-			id: "1",
-			title: "Administer Paracetamol (as per weight)",
-			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
-		},
-		{
-			id: "2",
-			title: "Ensure frequent sips of ORS or water",
-			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
-		},
-		{
-			id: "3",
-			title: "Keep room well-ventilated and cool",
-			icon: <CheckCircle2 size={20} color={COLORS.state.care.primary} />,
-		},
-	],
-	recheckInterval: "4 hours",
-};
+import { useCaseStore } from "@/store/case";
 
 export default function ActionStateScreen() {
 	const router = useRouter();
+	const activeCase = useCaseStore((s) => s.activeCase);
+	
+	// Use the engine-provided state data from the store
+	const stateData = activeCase?.triage_output?.action_state;
+	const triageOutput = activeCase?.triage_output;
+
+	if (!stateData) {
+		return (
+			<View style={styles.container}>
+				<Text style={styles.errorText}>No care plan found for this case.</Text>
+				<Button title="Go Home" onPress={() => router.replace("/(tabs)/home")} />
+			</View>
+		);
+	}
+	
+	// Format interval for display
+	const formatInterval = (minutes: number) => {
+		if (minutes === 0) return "Immediately";
+		if (minutes < 60) return `${minutes} minutes`;
+		const hours = Math.floor(minutes / 60);
+		return `${hours} hour${hours > 1 ? 's' : ''}`;
+	};
 
 	return (
 		<View style={styles.container}>
@@ -55,25 +50,29 @@ export default function ActionStateScreen() {
 			/>
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
-				<ActionStateCard state={MOCK_RESULT.state} />
+				<ActionStateCard state={stateData} />
 
 				<View style={styles.recheckCard}>
 					<Clock size={20} color={COLORS.state.care.text} />
 					<Text style={styles.recheckText}>
 						Recheck condition in{" "}
-						<Text style={styles.bold}>{MOCK_RESULT.recheckInterval}</Text>
+						<Text style={styles.bold}>{formatInterval(stateData.recheckIntervalMinutes)}</Text>
 					</Text>
 				</View>
 
-				<View style={styles.section}>
-					<Text style={styles.sectionTitle}>Immediate Care Steps</Text>
-					{MOCK_RESULT.nextSteps.map((step) => (
-						<Card key={step.id} style={styles.stepCard}>
-							<View style={styles.stepIcon}>{step.icon}</View>
-							<Text style={styles.stepTitle}>{step.title}</Text>
-						</Card>
-					))}
-				</View>
+				{triageOutput?.care_instructions && triageOutput.care_instructions.length > 0 && (
+					<View style={styles.section}>
+						<Text style={styles.sectionTitle}>Immediate Care Steps</Text>
+						{triageOutput.care_instructions.map((step: string) => (
+							<Card key={step} style={styles.stepCard}>
+								<View style={styles.stepIcon}>
+									<CheckCircle2 size={20} color={COLORS.state.care.primary} />
+								</View>
+								<Text style={styles.stepTitle}>{step}</Text>
+							</Card>
+						))}
+					</View>
+				)}
 
 				<Pressable
 					style={styles.detailsButton}
@@ -95,13 +94,17 @@ export default function ActionStateScreen() {
 	);
 }
 
-// Re-defining Pressable style for inline component
-import { Pressable } from "react-native";
-
 const styles = StyleSheet.create({
 	container: {
 		flex: 1,
 		backgroundColor: COLORS.background,
+	},
+	errorText: {
+		fontSize: 18,
+		textAlign: "center",
+		marginTop: 100,
+		color: COLORS.textSecondary,
+		marginBottom: 20,
 	},
 	scrollContent: {
 		padding: SPACING.screenEdge,

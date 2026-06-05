@@ -1,6 +1,7 @@
 import type { SQLiteBindValue } from "expo-sqlite";
 import { createUuid } from "../../utils/ids";
-import type { PatientInput, PatientUpdateInput } from "../../types/patient";
+import type { PatientInput, PatientUpdateInput, Patient } from "../../types/patient";
+import type { AgeGroup } from "../../types/triage";
 import type { SQLiteDatabase } from "../connection";
 
 type PatientRow = {
@@ -27,9 +28,10 @@ function parseList(value: string | null | undefined) {
 	}
 }
 
-function mapPatientRow(row: PatientRow) {
+function mapPatientRow(row: PatientRow): Patient {
 	return {
 		...row,
+		age_group: row.age_group as AgeGroup,
 		chronic_conditions: parseList(row.chronic_conditions),
 		allergies: parseList(row.allergies),
 		medications: parseList(row.medications),

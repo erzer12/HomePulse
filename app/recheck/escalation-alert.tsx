@@ -5,22 +5,59 @@ import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, SPACING } from "@/constants/colors";
+import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
+import { useState, useEffect } from "react";
 
-const MOCK_CHANGES = [
-	{ label: "Temperature", from: "38.2°C", to: "39.6°C", icon: "🌡️" },
-	{ label: "Hydration", from: "Normal", to: "Poor", icon: "💧" },
-	{ label: "Consciousness", from: "Alert", to: "Drowsy", icon: "🧠" },
-];
-
-const STATE_URGENT = {
-	level: 4,
-	label: "Seek Urgent Care Now",
-	explanation:
-		"Condition has worsened significantly. Immediate medical attention is required.",
-};
+import { buildActionState } from "@/engine";
 
 export default function EscalationAlertScreen() {
 	const router = useRouter();
+	const activeCase = useCaseStore((s) => s.activeCase);
+	const profiles = usePatientStore((s) => s.profiles);
+
+	const [patientName, setPatientName] = useState("the person");
+
+	useEffect(() => {
+		if (activeCase && profiles.length > 0) {
+			const patient = profiles.find((p) => p.id === activeCase.patient_id);
+			if (patient) setPatientName(patient.name);
+		}
+	}, [activeCase, profiles]);
+
+	const latestEntry = activeCase?.timeline?.[activeCase.timeline.length - 1];
+	const previousEntry = activeCase?.timeline?.[activeCase.timeline.length - 2];
+
+	const changes = [];
+	if (latestEntry && previousEntry) {
+		if (latestEntry.temperature_celsius !== previousEntry.temperature_celsius) {
+			changes.push({
+				label: "Temperature",
+				from: previousEntry.temperature_celsius ? `${previousEntry.temperature_celsius}°C` : "--",
+				to: latestEntry.temperature_celsius ? `${latestEntry.temperature_celsius}°C` : "--",
+				icon: "🌡️"
+			});
+		}
+		if (latestEntry.hydration_status !== previousEntry.hydration_status) {
+			changes.push({
+				label: "Hydration",
+				from: previousEntry.hydration_status,
+				to: latestEntry.hydration_status,
+				icon: "💧"
+			});
+		}
+		if (latestEntry.consciousness !== previousEntry.consciousness) {
+			changes.push({
+				label: "Consciousness",
+				from: previousEntry.consciousness,
+				to: latestEntry.consciousness,
+				icon: "🧠"
+			});
+		}
+	}
+
+	const stateData = activeCase?.triage_output?.action_state || 
+		buildActionState((activeCase?.current_action_state || 4) as 1 | 2 | 3 | 4);
 
 	return (
 		<View style={styles.container}>
@@ -35,37 +72,40 @@ export default function EscalationAlertScreen() {
 					/>
 					<Text style={styles.title}>Condition has worsened</Text>
 					<Text style={styles.summary}>
-						Rohan's condition has changed significantly since the last check-in.
+						{patientName}'s condition has changed significantly since the last check-in.
 					</Text>
 				</View>
 
-				<Card variant="elevated" style={styles.changesCard}>
-					<Text style={styles.cardTitle}>Key Changes Detected</Text>
-					{MOCK_CHANGES.map((change) => (
-						<View key={change.label} style={styles.changeRow}>
-							<Text style={styles.changeIcon}>{change.icon}</Text>
-							<View style={styles.changeText}>
-								<Text style={styles.changeLabel}>{change.label}</Text>
-								<Text style={styles.changeValue}>
-									{change.from} → <Text style={styles.bold}>{change.to}</Text>
-								</Text>
+				{changes.length > 0 && (
+					<Card variant="elevated" style={styles.changesCard}>
+						<Text style={styles.cardTitle}>Key Changes Detected</Text>
+						{changes.map((change) => (
+							<View key={change.label} style={styles.changeRow}>
+								<Text style={styles.changeIcon}>{change.icon}</Text>
+								<View style={styles.changeText}>
+									<Text style={styles.changeLabel}>{change.label}</Text>
+									<Text style={styles.changeValue}>
+										{change.from} → <Text style={styles.bold}>{change.to}</Text>
+									</Text>
+								</View>
 							</View>
-						</View>
-					))}
-				</Card>
+						))}
+					</Card>
+				)}
 
-				<ActionStateCard state={STATE_URGENT} />
+				<ActionStateCard state={stateData} />
 
 				<View style={styles.actions}>
 					<Button
 						title="I understand — Seek care now"
 						variant="urgent"
-						onPress={() => router.push("/recheck/check-in")} // Placeholder for locator
+						onPress={() => router.replace("/(tabs)/home")}
 					/>
 					<Button
 						title="View full clinical details"
 						variant="outline"
 						style={styles.secondaryAction}
+						onPress={() => router.push("/result/explanation")}
 					/>
 				</View>
 			</ScrollView>

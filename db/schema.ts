@@ -23,6 +23,7 @@ export async function initDatabase(db: SQLite.SQLiteDatabase): Promise<void> {
       patient_id TEXT NOT NULL REFERENCES patients(id),
       status TEXT NOT NULL DEFAULT 'active',
       current_action_state INTEGER,
+      triage_output TEXT,
       started_at INTEGER NOT NULL,
       last_evaluated_at INTEGER,
       share_token TEXT UNIQUE,
