@@ -24,7 +24,8 @@
 		{
 			"id": "no-overnight-caregiver-vulnerable-age",
 			"condition": {
-				"overnight_caregiver": false
+				"overnight_caregiver": false,
+				"applicable_age_groups": ["elderly", "infant"]
 			},
 			"state_adjustment": 1,
 			"reason_key": "no_overnight_caregiver"

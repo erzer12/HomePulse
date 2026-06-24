@@ -14,6 +14,7 @@ import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
+import { safeParseJson } from "@/utils/json";
 
 export default function ExplanationScreen() {
 	const router = useRouter();
@@ -23,9 +24,7 @@ export default function ExplanationScreen() {
 
 	// Get latest triage output and patient info
 	const latestEntry = activeCase?.timeline?.[activeCase.timeline.length - 1];
-	const triageOutput = latestEntry?.triage_output 
-		? JSON.parse(latestEntry.triage_output) 
-		: null;
+	const triageOutput = safeParseJson<any>(latestEntry?.triage_output, null);
 	const patient = profiles.find(p => p.id === activeCase?.patient_id);
 	const patientName = patient?.name || "the person";
 

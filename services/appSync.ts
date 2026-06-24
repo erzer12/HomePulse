@@ -7,6 +7,12 @@ export function startAppSync() {
 	if (_started) return;
 	_started = true;
 
+	// Flush immediately on startup to retry any operations from previous sessions
+	flushSyncQueue().catch((e) => {
+		// eslint-disable-next-line no-console
+		console.warn("flushSyncQueue (startup) failed", e);
+	});
+
 	const handler = (nextState: string) => {
 		if (nextState === "active") {
 			// flush a small batch when app becomes active

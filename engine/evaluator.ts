@@ -18,28 +18,6 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 	try {
 		const evaluatedAt = input.symptom.timestamp;
 
-		// If we have a verified rule config, try to match rules first (simple matcher)
-		const cached = getCachedRuleConfig();
-		if (cached?.verified && cached.config) {
-			const rc = cached.config as RuleConfig;
-			const matched = matchRules(rc.rules, input);
-			if (matched) {
-				const state = buildActionState(matched.output_state as 1 | 2 | 3 | 4);
-				const tpl = getExplanationTemplate(
-					matched.output_state as 1 | 2 | 3 | 4,
-					matched.explanation_key,
-				);
-				state.explanation = tpl.explanation;
-				return {
-					action_state: state,
-					rule_version: rc.version,
-					evaluated_at: evaluatedAt,
-					red_flag_triggered: false,
-					household_modifiers_applied: [],
-				};
-			}
-		}
-
 		const redFlagResult = checkRedFlags(input);
 		if (redFlagResult.triggered) {
 			return {
@@ -64,6 +42,28 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 			};
 		}
 
+		// If we have a verified rule config, try to match rules first (simple matcher)
+		const cached = getCachedRuleConfig();
+		if (cached?.verified && cached.config) {
+			const rc = cached.config as RuleConfig;
+			const matched = matchRules(rc.rules, input);
+			if (matched) {
+				const state = buildActionState(matched.output_state as 1 | 2 | 3 | 4);
+				const tpl = getExplanationTemplate(
+					matched.output_state as 1 | 2 | 3 | 4,
+					matched.explanation_key,
+				);
+				state.explanation = tpl.explanation;
+				return {
+					action_state: state,
+					rule_version: rc.version,
+					evaluated_at: evaluatedAt,
+					red_flag_triggered: false,
+					household_modifiers_applied: [],
+				};
+			}
+		}
+
 		const baseState = evaluateBaseState(input);
 		const { state: modifiedState, modifiers } = applyHouseholdModifiers(
 			baseState,
@@ -79,10 +79,7 @@ export function evaluateTriage(input: TriageInput): TriageOutput {
 		};
 	} catch (err: unknown) {
 		const msg = err instanceof Error ? err.message : String(err);
-		// Log for engineering/analytics
-		// eslint-disable-next-line no-console
 		console.error("Engine evaluateTriage error:", msg);
-		// Conservative fallback per ARCHITECTURE.md: teleconsult (level 3)
 		return {
 			action_state: buildActionState(3),
 			rule_version: RULE_VERSION,
@@ -184,11 +181,9 @@ function matchRules(
 }
 
 function evaluateCondition(cond: unknown, input: TriageInput): boolean {
-	// Logical combinators
 	if (cond === null || cond === undefined) return false;
 	if (typeof cond === "boolean") return cond;
 	if (Array.isArray(cond)) {
-		// default: AND semantics for array of conditions
 		return cond.every((c) => evaluateCondition(c, input));
 	}
 
@@ -201,10 +196,8 @@ function evaluateCondition(cond: unknown, input: TriageInput): boolean {
 		if (cn.not) return !evaluateCondition(cn.not as unknown, input);
 	}
 
-	// Leaf object: keys map to comparisons
 	for (const key of Object.keys(cond)) {
 		const val = (cond as Record<string, unknown>)[key];
-		// handle special comparator suffixes
 		const m = key.match(/(.+?)_(lt|lte|gt|gte|eq|ne|in|contains)$/);
 		let fieldKey = key;
 		let op: string | null = null;
@@ -250,8 +243,6 @@ function evaluateCondition(cond: unknown, input: TriageInput): boolean {
 			continue;
 		}
 
-		// No comparator: handle booleans, arrays and equality
-		// Special-case `_any` semantics even when `val` is an array (arrays are objects)
 		if (fieldKey.endsWith("_any") && Array.isArray(val)) {
 			const baseKey = fieldKey.replace(/_any$/, "");
 			const actualArr = resolveField(baseKey, input);
@@ -264,7 +255,6 @@ function evaluateCondition(cond: unknown, input: TriageInput): boolean {
 		}
 
 		if (typeof val === "object" && val !== null) {
-			// nested condition on sub-object — evaluate recursively
 			if (!evaluateCondition(val, { ...input })) return false;
 		} else {
 			if (actual === undefined) return false;
@@ -275,7 +265,6 @@ function evaluateCondition(cond: unknown, input: TriageInput): boolean {
 }
 
 function resolveField(fieldKey: string, input: TriageInput): unknown {
-	// Dot paths supported: symptom.temperature_celsius
 	if (fieldKey.includes(".")) {
 		const parts = fieldKey.split(".");
 		let cur: unknown = input as unknown;
@@ -286,12 +275,9 @@ function resolveField(fieldKey: string, input: TriageInput): unknown {
 		return cur;
 	}
 
-	// Try direct symptom, patient lookup
-	// Common short names map to symptom fields
 	const s = input.symptom as unknown as Record<string, unknown> | undefined;
 	const p = input.patient as unknown as Record<string, unknown> | undefined;
 	if (s && Object.hasOwn(s, fieldKey)) return s[fieldKey];
 	if (p && Object.hasOwn(p, fieldKey)) return p[fieldKey];
-	// fallback to top-level
 	return (input as unknown as Record<string, unknown>)[fieldKey];
 }

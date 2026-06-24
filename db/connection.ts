@@ -4,14 +4,25 @@ import { initDatabase } from "./schema";
 export type SQLiteDatabase = SQLite.SQLiteDatabase;
 
 let _db: SQLiteDatabase | null = null;
+let _initPromise: Promise<SQLiteDatabase> | null = null;
 
-export async function getDb(): Promise<SQLiteDatabase> {
-	if (_db) return _db;
+export function getDb(): Promise<SQLiteDatabase> {
+	if (_db) return Promise.resolve(_db);
+	if (_initPromise) return _initPromise;
 
-	const db = await SQLite.openDatabaseAsync("homepulse.db");
-	await initDatabase(db);
-	_db = db;
-	return _db;
+	_initPromise = (async () => {
+		try {
+			const db = await SQLite.openDatabaseAsync("homepulse.db");
+			await initDatabase(db);
+			_db = db;
+			return db;
+		} catch (error) {
+			_initPromise = null; // reset to allow retries if it failed
+			throw error;
+		}
+	})();
+
+	return _initPromise;
 }
 
 export async function closeDb(): Promise<void> {
@@ -19,6 +30,7 @@ export async function closeDb(): Promise<void> {
 		await _db.closeAsync();
 	}
 	_db = null;
+	_initPromise = null;
 }
 
 export async function truncateDatabase(): Promise<void> {

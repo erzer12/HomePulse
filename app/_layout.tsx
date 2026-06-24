@@ -4,6 +4,8 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NetworkBanner } from "@/components/ui/NetworkBanner";
 import { startAppSync } from "@/services/appSync";
 import { getDb } from "@/db/connection";
+import "@/i18n"; // Initialize i18n early so translations are ready across all screens
+
 
 export default function RootLayout() {
 	useEffect(() => {

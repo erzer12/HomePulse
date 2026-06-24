@@ -77,7 +77,7 @@ export default function SharedViewScreen() {
 				{summary.tasks && summary.tasks.length > 0 && (
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>Assigned Tasks</Text>
-						<TaskList tasks={summary.tasks.map(t => ({ id: t.id, title: t.title, done: t.status === "done" }))} />
+						<TaskList tasks={summary.tasks.map(t => ({ id: t.id, case_id: summary.case_id, title: t.title, done: t.status === "done" }))} />
 					</View>
 				)}
 

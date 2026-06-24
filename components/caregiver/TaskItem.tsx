@@ -1,16 +1,34 @@
+import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useTasksStore } from "@/store/tasks";
 
 interface TaskItemProps {
 	task: {
 		id: string;
+		case_id: string;
 		title: string;
 		done: boolean;
 	};
 }
 
 export function TaskItem({ task }: TaskItemProps) {
+	const markDone = useTasksStore((s) => s.markDone);
+	const [isMarking, setIsMarking] = useState(false);
+
+	const handlePress = async () => {
+		if (isMarking) return;
+		setIsMarking(true);
+		try {
+			await markDone(task.id, task.case_id);
+		} catch (error) {
+			console.error("Failed to mark task as done", error);
+		} finally {
+			setIsMarking(false);
+		}
+	};
+
 	return (
 		<View style={styles.container}>
 			<View style={styles.textContainer}>
@@ -26,6 +44,8 @@ export function TaskItem({ task }: TaskItemProps) {
 					size="normal"
 					fullWidth={false}
 					style={styles.button}
+					onPress={handlePress}
+					disabled={isMarking}
 				/>
 			)}
 
@@ -46,7 +66,6 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		marginBottom: SPACING.md,
-		// Soft shadow
 		shadowColor: COLORS.textPrimary,
 		shadowOffset: { width: 0, height: 2 },
 		shadowOpacity: 0.05,
@@ -67,7 +86,7 @@ const styles = StyleSheet.create({
 		opacity: 0.5,
 	},
 	button: {
-		height: 44, // Tappable but smaller than primary CTAs
+		height: 44,
 		paddingHorizontal: SPACING.lg,
 	},
 	doneBadge: {

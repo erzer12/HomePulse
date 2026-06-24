@@ -4,7 +4,7 @@ import { TaskItem } from "./TaskItem";
 export function TaskList({
 	tasks,
 }: {
-	tasks: { id: string; title: string; done: boolean }[];
+	tasks: { id: string; case_id: string; title: string; done: boolean }[];
 }) {
 	return (
 		<View>

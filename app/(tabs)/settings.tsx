@@ -22,6 +22,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { truncateDatabase } from "@/db/connection";
+import i18n from "@/i18n";
 import * as Updates from "expo-updates";
 
 interface SettingsRowProps {
@@ -66,7 +67,12 @@ export default function SettingsScreen() {
 	const insets = useSafeAreaInsets();
 	const [reminders, setReminders] = useState(true);
 	const [alerts, setAlerts] = useState(true);
-	const [language, setLanguage] = useState("en");
+	const [language, setLanguage] = useState(i18n.language || "en");
+
+	const handleLanguageChange = (lang: string) => {
+		setLanguage(lang);
+		void i18n.changeLanguage(lang);
+	};
 
 	const handleClearData = () => {
 		Alert.alert(
@@ -150,7 +156,7 @@ export default function SettingsScreen() {
 					<Text style={styles.sectionTitle}>App Language</Text>
 					<View style={styles.languageGrid}>
 						<Pressable
-							onPress={() => setLanguage("en")}
+							onPress={() => handleLanguageChange("en")}
 							style={[
 								styles.langChip,
 								language === "en" && styles.langChipActive,
@@ -166,7 +172,7 @@ export default function SettingsScreen() {
 							</Text>
 						</Pressable>
 						<Pressable
-							onPress={() => setLanguage("hi")}
+							onPress={() => handleLanguageChange("hi")}
 							style={[
 								styles.langChip,
 								language === "hi" && styles.langChipActive,

@@ -22,8 +22,13 @@ export function applyHouseholdModifiers(
 			const cond = mod.condition as Record<string, unknown>;
 			let matches = true;
 			if (
-				(cond as Record<string, unknown>).transport_available === false &&
+				cond.transport_available === false &&
 				h.transport_available === true
+			)
+				matches = false;
+			if (
+				cond.overnight_caregiver === false &&
+				h.overnight_caregiver === true
 			)
 				matches = false;
 			if (
@@ -48,14 +53,6 @@ export function applyHouseholdModifiers(
 
 	if (!h.transport_available && adjusted === 2) {
 		modifiers.push("Transport unavailable — teleconsult recommended over wait");
-	}
-
-	if (
-		!h.overnight_caregiver &&
-		(age_group === "elderly" || age_group === "infant")
-	) {
-		adjusted = Math.min(adjusted + 1, 4);
-		modifiers.push("No overnight caregiver — elevated monitoring required");
 	}
 
 	if (!h.has_thermometer) {

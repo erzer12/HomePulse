@@ -9,6 +9,7 @@ import { DURATION } from "@/constants/motion";
 import { useCaseStore } from "@/store/case";
 import type { SymptomEntry, ActionState } from "@/types/triage";
 import { buildActionState } from "@/engine";
+import { safeParseJson } from "@/utils/json";
 
 export default function HistoryScreen() {
 	const insets = useSafeAreaInsets();
@@ -46,7 +47,7 @@ export default function HistoryScreen() {
 		item: SymptomEntry;
 		index: number;
 	}) => {
-		const triage = item.triage_output ? JSON.parse(item.triage_output) : null;
+		const triage = safeParseJson<any>(item.triage_output, null);
 		const stateData: ActionState = triage?.action_state || buildActionState(1);
 		const theme = getActionStateTheme(stateData.level);
 		
