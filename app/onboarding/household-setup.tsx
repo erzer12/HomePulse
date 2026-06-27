@@ -1,15 +1,25 @@
-import { Stack, useRouter, useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { Activity, Car, Moon, Pill, Thermometer } from "lucide-react-native";
 import type React from "react";
 import { useState } from "react";
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, View } from "react-native";
+import {
+	Alert,
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	Switch,
+	Text,
+	TextInput,
+	View,
+} from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
-import { useCaseStore } from "@/store/case";
-import { useHouseholdStore } from "@/store/household";
 import { getDb } from "@/db/connection";
 import { saveHouseholdSnapshot } from "@/db/queries/household";
+import { useCaseStore } from "@/store/case";
+import { useHouseholdStore } from "@/store/household";
 
 interface ResourceToggleProps {
 	label: string;
@@ -40,14 +50,30 @@ function ResourceToggle({
 	);
 }
 
+const DEFAULT_READINESS = {
+	has_thermometer: false,
+	has_oximeter: false,
+	transport_available: true,
+	pharmacy_distance_km: 5,
+	overnight_caregiver: true,
+	medicine_stock: false,
+};
+
 export default function HouseholdSetupScreen() {
 	const router = useRouter();
 	const { patientId } = useLocalSearchParams<{ patientId: string }>();
-	
+
 	const createCaseForPatient = useCaseStore((s) => s.createCaseForPatient);
 	const setReadiness = useHouseholdStore((s) => s.setReadiness);
 
 	const [loading, setLoading] = useState(false);
+
+	const handleSkip = async () => {
+		// Apply defaults and flag that baseline was skipped
+		setReadiness(DEFAULT_READINESS);
+		await AsyncStorage.setItem("household_skipped", "1").catch(() => null);
+		router.replace("/(tabs)/home");
+	};
 	const [resources, setResources] = useState({
 		thermometer: true,
 		oximeter: false,
@@ -60,7 +86,10 @@ export default function HouseholdSetupScreen() {
 	const handleComplete = async () => {
 		const id = Array.isArray(patientId) ? patientId[0] : patientId;
 		if (!id) {
-			Alert.alert("Error", "No patient profile found. Please restart the setup.");
+			Alert.alert(
+				"Error",
+				"No patient profile found. Please restart the setup.",
+			);
 			router.replace("/onboarding/create-profile");
 			return;
 		}
@@ -100,13 +129,37 @@ export default function HouseholdSetupScreen() {
 		<View style={styles.container}>
 			<Stack.Screen
 				options={{
-					title: "Step 2 of 2",
+					title: "Step 3 of 3",
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
+					headerRight: () => (
+						<Pressable
+							onPress={handleSkip}
+							style={{ marginRight: SPACING.md }}
+							accessibilityRole="button"
+							accessibilityLabel="Skip household setup"
+						>
+							<Text
+								style={{
+									color: COLORS.primary,
+									fontWeight: "700",
+									fontSize: 15,
+								}}
+							>
+								Skip
+							</Text>
+						</Pressable>
+					),
 				}}
 			/>
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
+				<View style={styles.stepBar}>
+					<View style={styles.stepDot} />
+					<View style={styles.stepDot} />
+					<View style={[styles.stepDot, styles.stepActive]} />
+				</View>
+
 				<View style={styles.header}>
 					<Text style={styles.title}>Your Resources</Text>
 					<Text style={styles.subtitle}>
@@ -245,5 +298,20 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: SPACING.xl,
+	},
+	stepBar: {
+		flexDirection: "row",
+		gap: 6,
+		marginBottom: SPACING.xxl,
+	},
+	stepDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: COLORS.border,
+	},
+	stepActive: {
+		backgroundColor: COLORS.primary,
+		width: 24,
 	},
 });

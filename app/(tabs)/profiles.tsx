@@ -1,4 +1,4 @@
-import { Stack, useRouter, useFocusEffect } from "expo-router";
+import { Stack, useFocusEffect, useRouter } from "expo-router";
 import {
 	Activity,
 	ChevronDown,
@@ -8,6 +8,7 @@ import {
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
 import {
+	Alert,
 	LayoutAnimation,
 	Pressable,
 	ScrollView,
@@ -21,8 +22,8 @@ import { Card } from "@/components/ui/Card";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
-import { usePatientStore } from "@/store/patient";
 import { useCaseStore } from "@/store/case";
+import { usePatientStore } from "@/store/patient";
 import type { Patient } from "@/types/patient";
 
 export default function ProfilesScreen() {
@@ -32,15 +33,49 @@ export default function ProfilesScreen() {
 
 	const profiles = usePatientStore((s) => s.profiles);
 	const loadPatients = usePatientStore((s) => s.loadPatients);
+	const deletePatient = usePatientStore((s) => s.deletePatient);
 	const activeCase = useCaseStore((s) => s.activeCase);
+	const activeCases = useCaseStore((s) => s.activeCases);
 	const loadLatestActiveCase = useCaseStore((s) => s.loadLatestActiveCase);
+	const loadActiveCases = useCaseStore((s) => s.loadActiveCases);
 
 	useFocusEffect(
 		useCallback(() => {
 			loadPatients();
 			loadLatestActiveCase();
-		}, [loadPatients, loadLatestActiveCase])
+			loadActiveCases();
+		}, [loadPatients, loadLatestActiveCase, loadActiveCases]),
 	);
+
+	const handleDeleteProfile = (profile: Patient) => {
+		const hasActive = activeCases.some((c) => c.patient_id === profile.id);
+		if (hasActive) {
+			Alert.alert(
+				"Cannot Delete Profile",
+				`${profile.name} has an active health case. Please resolve the case before deleting the profile.`,
+			);
+			return;
+		}
+
+		Alert.alert(
+			"Delete Profile",
+			`Are you sure you want to delete ${profile.name}'s profile? All local symptom entry history will be lost.`,
+			[
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: async () => {
+						try {
+							await deletePatient(profile.id);
+						} catch (_e) {
+							Alert.alert("Error", "Failed to delete profile.");
+						}
+					},
+				},
+			],
+		);
+	};
 
 	const toggleExpand = (id: string) => {
 		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
@@ -51,7 +86,9 @@ export default function ProfilesScreen() {
 		if (patient.age_group === "infant" && patient.age_months) {
 			return `Infant (${patient.age_months} months)`;
 		}
-		return patient.age_group.charAt(0).toUpperCase() + patient.age_group.slice(1);
+		return (
+			patient.age_group.charAt(0).toUpperCase() + patient.age_group.slice(1)
+		);
 	};
 
 	return (
@@ -120,7 +157,8 @@ export default function ProfilesScreen() {
 												<View style={styles.metaItem}>
 													<Clock size={16} color={COLORS.textSecondary} />
 													<Text style={styles.metaText}>
-														Added: {new Date(profile.created_at).toLocaleDateString()}
+														Added:{" "}
+														{new Date(profile.created_at).toLocaleDateString()}
 													</Text>
 												</View>
 											</View>
@@ -135,11 +173,21 @@ export default function ProfilesScreen() {
 													style={styles.actionButton}
 												/>
 												<Button
-													title="Edit Profile"
+													title="Edit"
 													variant="outline"
 													size="normal"
 													onPress={() => {}}
 													style={styles.actionButton}
+												/>
+												<Button
+													title="Delete"
+													variant="outline"
+													size="normal"
+													onPress={() => handleDeleteProfile(profile)}
+													style={{
+														...styles.actionButton,
+														...styles.deleteBtn,
+													}}
 												/>
 											</View>
 										</View>
@@ -284,5 +332,8 @@ const styles = StyleSheet.create({
 	emptyText: {
 		color: COLORS.textSecondary,
 		fontSize: 16,
+	},
+	deleteBtn: {
+		borderColor: COLORS.state.urgent.primary,
 	},
 });

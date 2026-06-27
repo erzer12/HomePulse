@@ -3,10 +3,10 @@ import type { Patient } from "../types/patient";
 const now = Date.now();
 
 const seededPatients: Patient[] = [
-	{ 
-		id: "p1", 
-		name: "Asha", 
-		age_group: "child", 
+	{
+		id: "p1",
+		name: "Asha",
+		age_group: "child",
 		age_months: null,
 		chronic_conditions: [],
 		allergies: [],
@@ -14,7 +14,7 @@ const seededPatients: Patient[] = [
 		emergency_contact_name: null,
 		emergency_contact_phone: null,
 		created_at: now,
-		updated_at: now
+		updated_at: now,
 	},
 	{
 		id: "p2",
@@ -27,7 +27,7 @@ const seededPatients: Patient[] = [
 		emergency_contact_name: null,
 		emergency_contact_phone: null,
 		created_at: now,
-		updated_at: now
+		updated_at: now,
 	},
 	{
 		id: "p3",
@@ -40,7 +40,7 @@ const seededPatients: Patient[] = [
 		emergency_contact_name: null,
 		emergency_contact_phone: null,
 		created_at: now,
-		updated_at: now
+		updated_at: now,
 	},
 	{
 		id: "p4",
@@ -53,7 +53,7 @@ const seededPatients: Patient[] = [
 		emergency_contact_name: null,
 		emergency_contact_phone: null,
 		created_at: now,
-		updated_at: now
+		updated_at: now,
 	},
 	{
 		id: "p5",
@@ -66,7 +66,7 @@ const seededPatients: Patient[] = [
 		emergency_contact_name: null,
 		emergency_contact_phone: null,
 		created_at: now,
-		updated_at: now
+		updated_at: now,
 	},
 ];
 

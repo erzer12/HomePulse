@@ -1,8 +1,8 @@
 import { getDb } from "@/db/connection";
+import { useSyncStore } from "../store/sync";
 import { createCompactId } from "../utils/ids";
 import type { CaseSummary } from "./supabase";
 import { publishCaseSummary, updateTaskStatus } from "./supabase";
-import { useSyncStore } from "../store/sync";
 
 type SyncRow = {
 	id: string;
@@ -50,7 +50,7 @@ export async function enqueueSyncOperation(
 			Date.now(),
 		],
 	);
-	
+
 	// Refresh pending count
 	useSyncStore.getState().checkPending();
 }
@@ -79,6 +79,7 @@ export async function flushSyncQueue(limit = 50) {
 				await updateTaskStatus(
 					payload.id as string,
 					payload.status as "pending" | "done",
+					payload.completed_at as number | undefined,
 				);
 			} else {
 				throw new Error(
@@ -98,7 +99,7 @@ export async function flushSyncQueue(limit = 50) {
 			setError(lastError);
 		}
 	}
-	
+
 	await checkPending();
 	setSyncing(false);
 }

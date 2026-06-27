@@ -18,7 +18,7 @@ export const useSyncStore = create<SyncState>((set) => ({
 		try {
 			const db = await getDb();
 			const result = await db.getFirstAsync<{ count: number }>(
-				"SELECT COUNT(*) as count FROM sync_queue WHERE retry_count < max_retries"
+				"SELECT COUNT(*) as count FROM sync_queue WHERE retry_count < max_retries",
 			);
 			const count = result?.count || 0;
 			set({ pendingCount: count });

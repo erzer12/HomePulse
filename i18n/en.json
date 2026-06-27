@@ -2,7 +2,11 @@
 	"home": {
 		"welcome": "Welcome to HomePulse",
 		"startCheck": "Start Symptom Check",
-		"addPatient": "Add Patient Profile"
+		"addPatient": "Add Patient Profile",
+		"activeCase": "Active Case",
+		"caregiverTasks": "Caregiver Tasks",
+		"switchPatient": "Switch Patient Case",
+		"noActiveCases": "No active health cases."
 	},
 	"symptoms": {
 		"fever": { "label": "Fever" },
@@ -18,6 +22,19 @@
 		"2": { "label": "Guided Home Care", "short": "Home Care" },
 		"3": { "label": "Arrange Teleconsultation", "short": "Teleconsult" },
 		"4": { "label": "Seek Urgent Care Now", "short": "Urgent" }
+	},
+	"settings": {
+		"title": "Settings",
+		"account": "Account",
+		"notifications": "Notifications",
+		"recheckReminders": "Recheck Reminders",
+		"criticalAlerts": "Critical Alerts",
+		"appLanguage": "App Language",
+		"dataManagement": "Data Management",
+		"exportData": "Export All Health Data",
+		"clearData": "Clear All Data",
+		"sharing": "Sharing",
+		"manageShares": "Manage Caregiver Share Links"
 	},
 	"disclaimer": "This app provides guidance — it does not diagnose. Always consult a doctor for medical decisions."
 }

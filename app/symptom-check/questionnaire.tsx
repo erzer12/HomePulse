@@ -1,6 +1,6 @@
-import { useRouter, useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check, ChevronLeft, X } from "lucide-react-native";
-import { useRef, useState, useEffect } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	Animated,
 	KeyboardAvoidingView,
@@ -14,27 +14,63 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { useDraftPersistence } from "@/hooks/useDraftPersistence";
 import { useCaseStore } from "@/store/case";
+import { useDraftStore } from "@/store/draft";
 import { usePatientStore } from "@/store/patient";
+import type { SymptomCategory, SymptomEntry } from "@/types/triage";
 import { createUuid } from "@/utils/ids";
-import type { SymptomEntry, SymptomCategory } from "@/types/triage";
 
 export default function QuestionnaireScreen() {
 	const router = useRouter();
 	const params = useLocalSearchParams();
 	const insets = useSafeAreaInsets();
-	
+
 	const activeCase = useCaseStore((s) => s.activeCase);
 	const profiles = usePatientStore((s) => s.profiles);
 	const appendSymptomEntry = useCaseStore((s) => s.appendSymptomEntry);
-	const evaluateCase = useCaseStore((s) => s.evaluateCase);
 
 	const [patientName, setPatientName] = useState("the person");
 	const [currentIndex, setCurrentIndex] = useState(0);
-	const [answers, setAnswers] = useState<Record<string, string | number | boolean>>({});
+	const [answers, setAnswers] = useState<
+		Record<string, string | number | boolean>
+	>({});
 	const [inputValue, setInputValue] = useState("");
+	const [exitDialogVisible, setExitDialogVisible] = useState(false);
+
+	// Draft persistence — save questionnaire state when app is backgrounded
+	const {
+		caseId: draftCaseId,
+		answers: draftAnswers,
+		currentIndex: draftIndex,
+		hasDraft,
+		clearDraft,
+	} = useDraftStore();
+
+	useDraftPersistence(
+		useCallback(() => {
+			if (!activeCase?.patient_id || !params.category) return null;
+			return {
+				category: params.category as SymptomCategory,
+				patientId: activeCase.patient_id,
+				caseId: activeCase.id,
+				answers,
+				currentIndex,
+			};
+		}, [activeCase, params.category, answers, currentIndex]),
+	);
+
+	// Resume draft if available and relevant to this session
+	useEffect(() => {
+		if (hasDraft() && draftCaseId === activeCase?.id && draftAnswers) {
+			setAnswers(draftAnswers);
+			setCurrentIndex(draftIndex);
+			clearDraft();
+		}
+	}, [activeCase, draftAnswers, hasDraft, draftIndex, clearDraft, draftCaseId]);
 
 	useEffect(() => {
 		if (activeCase && profiles.length > 0) {
@@ -86,9 +122,9 @@ export default function QuestionnaireScreen() {
 			type: "choice",
 			options: [
 				{ label: "Fully Alert", value: "alert" },
-				{ label: "Sleepy / Drowsy", value: "lethargic" },
+				{ label: "Sleepy / Drowsy", value: "drowsy" },
 				{ label: "Confused", value: "confused" },
-				{ label: "Unresponsive", value: "unconscious" },
+				{ label: "Unresponsive", value: "unresponsive" },
 			],
 		},
 	];
@@ -118,7 +154,10 @@ export default function QuestionnaireScreen() {
 	const handleNext = async () => {
 		// If numeric, save input first
 		if (currentQuestion.type === "numeric" && inputValue) {
-			setAnswers(prev => ({ ...prev, [currentQuestion.id]: Number.parseFloat(inputValue) }));
+			setAnswers((prev) => ({
+				...prev,
+				[currentQuestion.id]: Number.parseFloat(inputValue),
+			}));
 		}
 
 		if (currentIndex < QUESTIONS.length - 1) {
@@ -136,17 +175,24 @@ export default function QuestionnaireScreen() {
 			case_id: activeCase.id,
 			timestamp: Date.now(),
 			category: (params.category as SymptomCategory) || "fever",
-			duration_hours: answers.duration === "<2d" ? 24 : answers.duration === "2-5d" ? 72 : 144,
-			temperature_celsius: answers.temperature as number || undefined,
-			hydration_status: (answers.is_drinking as SymptomEntry["hydration_status"]) || "normal",
-			consciousness: (answers.alertness as SymptomEntry["consciousness"]) || "alert",
+			duration_hours:
+				answers.duration === "<2d"
+					? 24
+					: answers.duration === "2-5d"
+						? 72
+						: 144,
+			temperature_celsius: (answers.temperature as number) || undefined,
+			hydration_status:
+				(answers.is_drinking as SymptomEntry["hydration_status"]) || "normal",
+			consciousness:
+				(answers.alertness as SymptomEntry["consciousness"]) || "alert",
 			breathing_difficulty: !!answers.breathing_diff,
 		};
 
 		try {
 			await appendSymptomEntry(entry);
-			await evaluateCase(activeCase.id);
-			router.push("/symptom-check/household-check");
+			// Evaluation deferred until household-confirm so user can update baseline first
+			router.push("/symptom-check/household-confirm");
 		} catch (e) {
 			console.error("Failed to save assessment", e);
 		}
@@ -156,8 +202,15 @@ export default function QuestionnaireScreen() {
 		if (currentIndex > 0) {
 			transitionToNext(currentIndex - 1);
 		} else {
-			router.back();
+			// Back from first question — show exit confirmation
+			setExitDialogVisible(true);
 		}
+	};
+
+	const handleExitConfirm = () => {
+		setExitDialogVisible(false);
+		clearDraft();
+		router.back();
 	};
 
 	const saveAnswer = (value: string | number | boolean) => {
@@ -171,157 +224,174 @@ export default function QuestionnaireScreen() {
 		answers[currentQuestion.id] !== undefined || inputValue !== "";
 
 	return (
-		<KeyboardAvoidingView
-			behavior={Platform.OS === "ios" ? "padding" : "height"}
-			style={[styles.container, { paddingTop: insets.top }]}
-		>
-			<View style={styles.topBar}>
-				<Pressable onPress={() => router.back()} style={styles.iconButton}>
-					<X color={COLORS.textPrimary} size={24} />
-				</Pressable>
-				<View style={styles.progressContainer}>
-					<Text style={styles.progressText}>
-						Step {currentIndex + 1} of {QUESTIONS.length}
-					</Text>
-					<ProgressBar
-						progress={progress}
-						color={COLORS.primary}
-						style={styles.progressBar}
-					/>
-				</View>
-				<Pressable onPress={handleBack} style={styles.iconButton}>
-					<ChevronLeft color={COLORS.textPrimary} size={24} />
-				</Pressable>
-			</View>
-
-			<Animated.ScrollView
-				style={{
-					opacity: contentFade,
-					transform: [
-						{
-							translateY: contentFade.interpolate({
-								inputRange: [0, 1],
-								outputRange: [10, 0],
-							}),
-						},
-					],
-				}}
-				contentContainerStyle={styles.scrollContent}
-				keyboardShouldPersistTaps="handled"
+		<>
+			<KeyboardAvoidingView
+				behavior={Platform.OS === "ios" ? "padding" : "height"}
+				style={[styles.container, { paddingTop: insets.top }]}
 			>
-				<View style={styles.questionSection}>
-					<Text style={styles.questionText}>{currentQuestion.text}</Text>
-					{currentQuestion.hint && (
-						<Text style={styles.hintText}>{currentQuestion.hint}</Text>
-					)}
+				<View style={styles.topBar}>
+					<Pressable
+						onPress={() => setExitDialogVisible(true)}
+						style={styles.iconButton}
+					>
+						<X color={COLORS.textPrimary} size={24} />
+					</Pressable>
+					<View style={styles.progressContainer}>
+						<Text style={styles.progressText}>
+							Step {currentIndex + 1} of {QUESTIONS.length}
+						</Text>
+						<ProgressBar
+							progress={progress}
+							color={COLORS.primary}
+							style={styles.progressBar}
+						/>
+					</View>
+					<Pressable onPress={handleBack} style={styles.iconButton}>
+						<ChevronLeft color={COLORS.textPrimary} size={24} />
+					</Pressable>
 				</View>
 
-				<View style={styles.inputSection}>
-					{currentQuestion.type === "boolean" && (
-						<View style={styles.booleanContainer}>
-							<Pressable
-								onPress={() => saveAnswer(true)}
-								style={[
-									styles.booleanButton,
-									answers[currentQuestion.id] === true && styles.booleanActive,
-								]}
-							>
-								<Text
-									style={[
-										styles.booleanLabel,
-										answers[currentQuestion.id] === true && styles.textWhite,
-									]}
-								>
-									YES
-								</Text>
-							</Pressable>
-							<Pressable
-								onPress={() => saveAnswer(false)}
-								style={[
-									styles.booleanButton,
-									answers[currentQuestion.id] === false &&
-										styles.booleanNoActive,
-								]}
-							>
-								<Text
-									style={[
-										styles.booleanLabel,
-										answers[currentQuestion.id] === false && styles.textWhite,
-									]}
-								>
-									NO
-								</Text>
-							</Pressable>
-						</View>
-					)}
+				<Animated.ScrollView
+					style={{
+						opacity: contentFade,
+						transform: [
+							{
+								translateY: contentFade.interpolate({
+									inputRange: [0, 1],
+									outputRange: [10, 0],
+								}),
+							},
+						],
+					}}
+					contentContainerStyle={styles.scrollContent}
+					keyboardShouldPersistTaps="handled"
+				>
+					<View style={styles.questionSection}>
+						<Text style={styles.questionText}>{currentQuestion.text}</Text>
+						{currentQuestion.hint && (
+							<Text style={styles.hintText}>{currentQuestion.hint}</Text>
+						)}
+					</View>
 
-					{currentQuestion.type === "choice" && (
-						<View style={styles.choiceContainer}>
-							{currentQuestion.options?.map((opt) => (
+					<View style={styles.inputSection}>
+						{currentQuestion.type === "boolean" && (
+							<View style={styles.booleanContainer}>
 								<Pressable
-									key={opt.value}
-									onPress={() => saveAnswer(opt.value)}
+									onPress={() => saveAnswer(true)}
 									style={[
-										styles.choiceItem,
-										answers[currentQuestion.id] === opt.value &&
-											styles.choiceActive,
+										styles.booleanButton,
+										answers[currentQuestion.id] === true &&
+											styles.booleanActive,
 									]}
 								>
 									<Text
 										style={[
-											styles.choiceLabel,
-											answers[currentQuestion.id] === opt.value &&
-												styles.textPrimary,
+											styles.booleanLabel,
+											answers[currentQuestion.id] === true && styles.textWhite,
 										]}
 									>
-										{opt.label}
+										YES
 									</Text>
-									{answers[currentQuestion.id] === opt.value && (
-										<Check size={20} color={COLORS.primary} />
-									)}
 								</Pressable>
-							))}
-						</View>
-					)}
+								<Pressable
+									onPress={() => saveAnswer(false)}
+									style={[
+										styles.booleanButton,
+										answers[currentQuestion.id] === false &&
+											styles.booleanNoActive,
+									]}
+								>
+									<Text
+										style={[
+											styles.booleanLabel,
+											answers[currentQuestion.id] === false && styles.textWhite,
+										]}
+									>
+										NO
+									</Text>
+								</Pressable>
+							</View>
+						)}
 
-					{currentQuestion.type === "numeric" && (
-						<View style={styles.numericContainer}>
-							<Card variant="elevated" style={styles.numericDisplay}>
-								<TextInput
-									style={styles.numericInput}
-									value={inputValue}
-									onChangeText={setInputValue}
-									placeholder="0.0"
-									keyboardType="decimal-pad"
-									autoFocus
-								/>
-								<Text style={styles.unitText}>{currentQuestion.unit}</Text>
-							</Card>
-							<Text style={styles.numericHint}>
-								Enter reading from your device
-							</Text>
-						</View>
-					)}
+						{currentQuestion.type === "choice" && (
+							<View style={styles.choiceContainer}>
+								{currentQuestion.options?.map((opt) => (
+									<Pressable
+										key={opt.value}
+										onPress={() => saveAnswer(opt.value)}
+										style={[
+											styles.choiceItem,
+											answers[currentQuestion.id] === opt.value &&
+												styles.choiceActive,
+										]}
+									>
+										<Text
+											style={[
+												styles.choiceLabel,
+												answers[currentQuestion.id] === opt.value &&
+													styles.textPrimary,
+											]}
+										>
+											{opt.label}
+										</Text>
+										{answers[currentQuestion.id] === opt.value && (
+											<Check size={20} color={COLORS.primary} />
+										)}
+									</Pressable>
+								))}
+							</View>
+						)}
+
+						{currentQuestion.type === "numeric" && (
+							<View style={styles.numericContainer}>
+								<Card variant="elevated" style={styles.numericDisplay}>
+									<TextInput
+										style={styles.numericInput}
+										value={inputValue}
+										onChangeText={setInputValue}
+										placeholder="0.0"
+										keyboardType="decimal-pad"
+										autoFocus
+									/>
+									<Text style={styles.unitText}>{currentQuestion.unit}</Text>
+								</Card>
+								<Text style={styles.numericHint}>
+									Enter reading from your device
+								</Text>
+							</View>
+						)}
+					</View>
+				</Animated.ScrollView>
+
+				<View
+					style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}
+				>
+					<Button
+						title={
+							currentIndex === QUESTIONS.length - 1
+								? "Finish Assessment"
+								: "Next Question"
+						}
+						onPress={handleNext}
+						disabled={!isAnswered && currentQuestion.type === "numeric"}
+					/>
+					<Pressable onPress={handleBack} style={styles.prevLink}>
+						<Text style={styles.prevLinkText}>Previous Question</Text>
+					</Pressable>
 				</View>
-			</Animated.ScrollView>
+			</KeyboardAvoidingView>
 
-			<View
-				style={[styles.footer, { paddingBottom: insets.bottom + SPACING.lg }]}
-			>
-				<Button
-					title={
-						currentIndex === QUESTIONS.length - 1
-							? "Finish Assessment"
-							: "Next Question"
-					}
-					onPress={handleNext}
-					disabled={!isAnswered && currentQuestion.type === "numeric"}
-				/>
-				<Pressable onPress={handleBack} style={styles.prevLink}>
-					<Text style={styles.prevLinkText}>Previous Question</Text>
-				</Pressable>
-			</View>
-		</KeyboardAvoidingView>
+			<ConfirmDialog
+				visible={exitDialogVisible}
+				title="Abandon Assessment?"
+				message="Your answers will not be saved and the triage will not complete. Are you sure you want to go back?"
+				confirmLabel="Abandon"
+				cancelLabel="Keep going"
+				destructive
+				onConfirm={handleExitConfirm}
+				onCancel={() => setExitDialogVisible(false)}
+			/>
+		</>
 	);
 }
 

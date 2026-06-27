@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Stack, useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -11,6 +12,7 @@ import {
 } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { PermissionPromptModal } from "@/components/ui/PermissionPromptModal";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { usePatientStore } from "@/store/patient";
 import type { AgeGroup } from "@/types/triage";
@@ -28,6 +30,8 @@ export default function CreateProfileScreen() {
 	const router = useRouter();
 	const createPatient = usePatientStore((s) => s.createPatient);
 	const [loading, setLoading] = useState(false);
+	const [permissionVisible, setPermissionVisible] = useState(false);
+	const [savedPatientId, setSavedPatientId] = useState<string | null>(null);
 
 	const [name, setName] = useState("");
 	const [selectedAge, setSelectedAge] = useState<AgeGroup>("child");
@@ -61,15 +65,19 @@ export default function CreateProfileScreen() {
 				name: name.trim(),
 				age_group: selectedAge,
 				chronic_conditions: selectedConditions.filter((c) => c !== "None"),
-				allergies: allergies.split(",").map((s) => s.trim()).filter(Boolean),
+				allergies: allergies
+					.split(",")
+					.map((s) => s.trim())
+					.filter(Boolean),
 				emergency_contact_name: contactName.trim() || null,
 				emergency_contact_phone: contactPhone.trim() || null,
 			});
 
-			router.push({
-				pathname: "/onboarding/household-setup",
-				params: { patientId: patient.id },
-			});
+			setSavedPatientId(patient.id);
+
+			// Mark first-run complete so _layout.tsx routes to auth/gateway on next launch
+			await AsyncStorage.setItem("first_run_completed", "1").catch(() => null);
+			setPermissionVisible(true);
 		} catch (err) {
 			Alert.alert("Error", "Failed to save profile. Please try again.");
 			console.error(err);
@@ -78,17 +86,45 @@ export default function CreateProfileScreen() {
 		}
 	};
 
+	const handleRequestPermission = async () => {
+		setPermissionVisible(false);
+		try {
+			const Notifications = require("expo-notifications");
+			await Notifications.requestPermissionsAsync();
+		} catch {
+			// Ignore if not supported in simulator/env
+		}
+		router.replace({
+			pathname: "/onboarding/household-setup",
+			params: { patientId: savedPatientId || "" },
+		});
+	};
+
+	const handleSkipPermission = () => {
+		setPermissionVisible(false);
+		router.replace({
+			pathname: "/onboarding/household-setup",
+			params: { patientId: savedPatientId || "" },
+		});
+	};
+
 	return (
 		<View style={styles.container}>
 			<Stack.Screen
 				options={{
-					title: "Step 1 of 2",
+					title: "Step 2 of 3",
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
 				}}
 			/>
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
+				<View style={styles.stepBar}>
+					<View style={styles.stepDot} />
+					<View style={[styles.stepDot, styles.stepActive]} />
+					<View style={styles.stepDot} />
+				</View>
+
 				<View style={styles.header}>
 					<Text style={styles.title}>Create Patient Profile</Text>
 					<Text style={styles.subtitle}>
@@ -201,6 +237,14 @@ export default function CreateProfileScreen() {
 					/>
 				</View>
 			</ScrollView>
+
+			<PermissionPromptModal
+				visible={permissionVisible}
+				type="notifications"
+				reason="We need permission to send you local notifications so you don't forget to recheck vitals like temperature and hydration."
+				onAllow={handleRequestPermission}
+				onCancel={handleSkipPermission}
+			/>
 		</View>
 	);
 }
@@ -320,5 +364,20 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: SPACING.xl,
+	},
+	stepBar: {
+		flexDirection: "row",
+		gap: 6,
+		marginBottom: SPACING.xxl,
+	},
+	stepDot: {
+		width: 8,
+		height: 8,
+		borderRadius: 4,
+		backgroundColor: COLORS.border,
+	},
+	stepActive: {
+		backgroundColor: COLORS.primary,
+		width: 24,
 	},
 });

@@ -1,5 +1,5 @@
 import type { TriageInput, TriageOutput } from "../types/triage";
-import { evaluateTriage, buildActionState } from "./evaluator";
+import { buildActionState, evaluateTriage } from "./evaluator";
 import { loadBundledRuleConfig } from "./rulesLoader";
 
 // Ensure rule config is loaded/verified once at startup (async). Evaluations are synchronous

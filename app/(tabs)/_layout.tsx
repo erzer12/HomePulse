@@ -2,7 +2,12 @@ import { Tabs } from "expo-router";
 import { History, Home, Settings, Users } from "lucide-react-native";
 import { Pressable } from "react-native";
 import { COLORS } from "@/constants/colors";
-import type { BottomTabBarButtonProps } from "@react-navigation/bottom-tabs";
+
+interface TabBarButtonProps {
+	style?: import("react-native").StyleProp<import("react-native").ViewStyle>;
+	onPress?: (e: import("react-native").GestureResponderEvent) => void;
+	children?: React.ReactNode;
+}
 
 export default function TabsLayout() {
 	return (
@@ -17,7 +22,7 @@ export default function TabsLayout() {
 					paddingBottom: 12, // More bottom padding for labels
 					paddingTop: 8,
 				},
-				tabBarButton: (props: BottomTabBarButtonProps) => {
+				tabBarButton: (props: TabBarButtonProps) => {
 					const { style, onPress, children, ...rest } = props;
 					return (
 						<Pressable

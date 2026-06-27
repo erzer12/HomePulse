@@ -1,9 +1,9 @@
 import { useNetInfo } from "@react-native-community/netinfo";
-import { WifiOff, CloudUpload } from "lucide-react-native";
-import { StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { CloudUpload, WifiOff } from "lucide-react-native";
+import { useEffect } from "react";
+import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { COLORS, SPACING } from "@/constants/colors";
 import { useSyncStore } from "@/store/sync";
-import { useEffect } from "react";
 
 export function NetworkBanner() {
 	const netInfo = useNetInfo();
@@ -33,7 +33,9 @@ export function NetworkBanner() {
 					<CloudUpload size={14} color={COLORS.primary} />
 				)}
 				<Text style={[styles.text, { color: COLORS.primary }]}>
-					{isSyncing ? "Syncing care data..." : `${pendingCount} updates pending`}
+					{isSyncing
+						? "Syncing care data..."
+						: `${pendingCount} updates pending`}
 				</Text>
 			</View>
 		);

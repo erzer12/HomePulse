@@ -27,7 +27,7 @@ export function SymptomIcon({
 
 	// Dynamically resolve icon from lucide-react-native
 	const IconComponent =
-		((LucideIcons as Record<string, React.ElementType>)[pascalName]) ||
+		(LucideIcons as unknown as Record<string, React.ElementType>)[pascalName] ||
 		LucideIcons.Activity;
 
 	return (

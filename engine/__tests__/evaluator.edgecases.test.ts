@@ -48,7 +48,14 @@ jest.mock("../rulesLoader", () => {
 	};
 });
 
-function baseInput(overrides: Partial<TriageInput> = {}) {
+function baseInput(
+	overrides: {
+		patient?: Partial<TriageInput["patient"]>;
+		symptom?: Partial<TriageInput["symptom"]>;
+		symptom_history?: TriageInput["symptom_history"];
+		household?: Partial<TriageInput["household"]>;
+	} = {},
+) {
 	return {
 		patient: {
 			age_group: "adult",

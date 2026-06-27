@@ -4,6 +4,7 @@ describe("analyzeTrajectory", () => {
 	it("escalates when 3 dimensions worsen", () => {
 		const previous = {
 			id: "prev",
+			case_id: "c1",
 			timestamp: 1,
 			category: "fever" as const,
 			duration_hours: 4,

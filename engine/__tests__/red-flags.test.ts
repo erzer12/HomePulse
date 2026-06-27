@@ -5,6 +5,7 @@ const baseInput: TriageInput = {
 	patient: { age_group: "adult", chronic_conditions: [] },
 	symptom: {
 		id: "s1",
+		case_id: "c1",
 		timestamp: 1700000000000,
 		category: "respiratory",
 		duration_hours: 2,

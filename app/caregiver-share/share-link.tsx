@@ -1,27 +1,27 @@
+import * as Clipboard from "expo-clipboard";
 import { Stack, useRouter } from "expo-router";
 import { Copy, Info } from "lucide-react-native";
-import { Pressable, Share, StyleSheet, Text, View, Alert } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { Alert, Pressable, Share, StyleSheet, Text, View } from "react-native";
 import QRCode from "react-native-qrcode-svg";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
-import { useState, useEffect, useCallback } from "react";
-import * as Clipboard from "expo-clipboard";
 
 export default function ShareLinkScreen() {
 	const router = useRouter();
 	const activeCase = useCaseStore((s) => s.activeCase);
 	const profiles = usePatientStore((s) => s.profiles);
 	const setShareToken = useCaseStore((s) => s.setShareToken);
-	
+
 	const [token, setToken] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
-	
-	const patient = profiles.find(p => p.id === activeCase?.patient_id);
+
+	const patient = profiles.find((p) => p.id === activeCase?.patient_id);
 	const patientName = patient?.name || "the person";
-	
+
 	const shareUrl = token ? `homepulse://case/${token}` : "Generating link...";
 
 	const generateToken = useCallback(async () => {
@@ -74,7 +74,8 @@ export default function ShareLinkScreen() {
 				<View style={styles.header}>
 					<Text style={styles.title}>Invite a Caregiver</Text>
 					<Text style={styles.subtitle}>
-						Share a secure, read-only link so others can help monitor {patientName}.
+						Share a secure, read-only link so others can help monitor{" "}
+						{patientName}.
 					</Text>
 				</View>
 
@@ -88,8 +89,17 @@ export default function ShareLinkScreen() {
 								backgroundColor="#FFFFFF"
 							/>
 						) : (
-							<View style={{ width: 180, height: 180, justifyContent: 'center', alignItems: 'center' }}>
-								<Text style={{ color: COLORS.textSecondary }}>Generating...</Text>
+							<View
+								style={{
+									width: 180,
+									height: 180,
+									justifyContent: "center",
+									alignItems: "center",
+								}}
+							>
+								<Text style={{ color: COLORS.textSecondary }}>
+									Generating...
+								</Text>
 							</View>
 						)}
 					</View>
@@ -101,7 +111,11 @@ export default function ShareLinkScreen() {
 						<Text style={styles.url} numberOfLines={1}>
 							{shareUrl}
 						</Text>
-						<Pressable style={styles.copyButton} onPress={onCopy} disabled={!token}>
+						<Pressable
+							style={styles.copyButton}
+							onPress={onCopy}
+							disabled={!token}
+						>
 							<Copy size={20} color={COLORS.primary} />
 						</Pressable>
 					</View>
