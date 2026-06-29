@@ -1,7 +1,11 @@
 import type { SQLiteBindValue } from "expo-sqlite";
-import { createUuid } from "../../utils/ids";
-import type { PatientInput, PatientUpdateInput, Patient } from "../../types/patient";
+import type {
+	Patient,
+	PatientInput,
+	PatientUpdateInput,
+} from "../../types/patient";
 import type { AgeGroup } from "../../types/triage";
+import { createUuid } from "../../utils/ids";
 import type { SQLiteDatabase } from "../connection";
 
 type PatientRow = {

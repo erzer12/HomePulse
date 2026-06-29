@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { StyleSheet, View, type ViewStyle, type StyleProp } from "react-native";
+import { type StyleProp, StyleSheet, View, type ViewStyle } from "react-native";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 
 interface CardProps extends PropsWithChildren {

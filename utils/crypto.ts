@@ -35,11 +35,13 @@ export async function verifyRuleConfigSignature(
 		// so we use a less-ideal `secret:payload` hashing scheme as a fallback for demo only.
 		try {
 			// dynamic import to keep native-only dependency optional
-			// @ts-expect-error
+			// biome-ignore lint/suspicious/noTsIgnore: dynamic import fallback
+			// @ts-ignore
 			const ExpoCrypto = await import("expo-crypto");
 			const candidate = `${secret}:${ruleConfigRaw}`;
 			const digest = await ExpoCrypto.digestStringAsync(
-				// @ts-expect-error
+				// biome-ignore lint/suspicious/noTsIgnore: dynamic import fallback
+				// @ts-ignore
 				ExpoCrypto.CryptoDigestAlgorithm.SHA256,
 				candidate,
 			);

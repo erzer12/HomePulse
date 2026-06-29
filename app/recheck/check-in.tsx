@@ -1,14 +1,15 @@
 import { Stack, useRouter } from "expo-router";
 import { Activity, Droplet, Thermometer } from "lucide-react-native";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { TriageProcessingOverlay } from "@/components/ui/TriageProcessingOverlay";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
-import { createUuid } from "@/utils/ids";
 import type { SymptomEntry } from "@/types/triage";
+import { createUuid } from "@/utils/ids";
 
 export default function CheckInScreen() {
 	const router = useRouter();
@@ -32,14 +33,15 @@ export default function CheckInScreen() {
 
 	const handleAnalyze = async () => {
 		if (!activeCase) return;
-		
+
 		setLoading(true);
-		const previousLevel = typeof activeCase.current_action_state === 'object' 
-			? activeCase.current_action_state.level 
-			: (activeCase.current_action_state || 1);
-		
+		const previousLevel =
+			typeof activeCase.current_action_state === "object"
+				? activeCase.current_action_state.level
+				: activeCase.current_action_state || 1;
+
 		const latestEntry = activeCase.timeline?.[activeCase.timeline.length - 1];
-		
+
 		const entry: SymptomEntry = {
 			id: createUuid(),
 			case_id: activeCase.id,
@@ -55,11 +57,13 @@ export default function CheckInScreen() {
 		try {
 			await appendSymptomEntry(entry);
 			const output = await evaluateCase(activeCase.id);
-			
-			if (output.action_state.level > previousLevel) {
+
+			if (output.action_state.level === 4) {
+				router.replace("/result/emergency");
+			} else if (output.action_state.level > previousLevel) {
 				router.push("/recheck/escalation-alert");
 			} else {
-				router.push("/result/action-state");
+				router.push("/recheck/stable-result");
 			}
 		} catch (e) {
 			console.error("Failed to save recheck", e);
@@ -67,6 +71,8 @@ export default function CheckInScreen() {
 			setLoading(false);
 		}
 	};
+
+	const latestEntry = activeCase?.timeline?.[activeCase.timeline.length - 1];
 
 	return (
 		<View style={styles.container}>
@@ -85,6 +91,43 @@ export default function CheckInScreen() {
 						Let's see if the symptoms have changed.
 					</Text>
 				</View>
+
+				{latestEntry && (
+					<Card variant="default" style={styles.previousVitalsCard}>
+						<Text style={styles.previousVitalsTitle}>Previous Vitals</Text>
+						<Text style={styles.previousVitalsText}>
+							Recorded:{" "}
+							{new Date(latestEntry.timestamp).toLocaleTimeString([], {
+								hour: "2-digit",
+								minute: "2-digit",
+							})}
+						</Text>
+						<View style={styles.vitalsGrid}>
+							<View style={styles.vitalStat}>
+								<Text style={styles.statLabel}>Temp</Text>
+								<Text style={styles.statVal}>
+									{latestEntry.temperature_celsius
+										? `${latestEntry.temperature_celsius}°C`
+										: "N/A"}
+								</Text>
+							</View>
+							<View style={styles.vitalStat}>
+								<Text style={styles.statLabel}>Hydration</Text>
+								<Text style={styles.statVal}>
+									{latestEntry.hydration_status.charAt(0).toUpperCase() +
+										latestEntry.hydration_status.slice(1)}
+								</Text>
+							</View>
+							<View style={styles.vitalStat}>
+								<Text style={styles.statLabel}>Alertness</Text>
+								<Text style={styles.statVal}>
+									{latestEntry.consciousness.charAt(0).toUpperCase() +
+										latestEntry.consciousness.slice(1)}
+								</Text>
+							</View>
+						</View>
+					</Card>
+				)}
 
 				<Card variant="elevated" style={styles.vitalCard}>
 					<View style={styles.cardHeader}>
@@ -126,7 +169,7 @@ export default function CheckInScreen() {
 						{[
 							{ id: "normal", label: "Normal" },
 							{ id: "reduced", label: "Reduced" },
-							{ id: "poor", label: "Poor" }
+							{ id: "poor", label: "Poor" },
 						].map((opt) => (
 							<Button
 								key={opt.id}
@@ -157,7 +200,7 @@ export default function CheckInScreen() {
 						{[
 							{ id: "alert", label: "Alert" },
 							{ id: "lethargic", label: "Sleepy" },
-							{ id: "confused", label: "Confused" }
+							{ id: "confused", label: "Confused" },
 						].map((opt) => (
 							<Button
 								key={opt.id}
@@ -180,6 +223,8 @@ export default function CheckInScreen() {
 					/>
 				</View>
 			</ScrollView>
+
+			<TriageProcessingOverlay visible={loading} />
 		</View>
 	);
 }
@@ -242,7 +287,7 @@ const styles = StyleSheet.create({
 		fontSize: 48,
 		fontWeight: "800",
 		color: COLORS.textPrimary,
-		textAlign: 'center',
+		textAlign: "center",
 		minWidth: 100,
 	},
 	unit: {
@@ -267,5 +312,45 @@ const styles = StyleSheet.create({
 	},
 	footer: {
 		marginTop: SPACING.xl,
+	},
+	previousVitalsCard: {
+		marginBottom: SPACING.lg,
+		backgroundColor: COLORS.surfaceElevated,
+		borderColor: COLORS.border,
+		padding: SPACING.lg,
+	},
+	previousVitalsTitle: {
+		fontSize: 15,
+		fontWeight: "800",
+		color: COLORS.textPrimary,
+		marginBottom: 2,
+	},
+	previousVitalsText: {
+		fontSize: 12,
+		color: COLORS.textSecondary,
+		marginBottom: SPACING.md,
+	},
+	vitalsGrid: {
+		flexDirection: "row",
+		justifyContent: "space-between",
+		backgroundColor: COLORS.background,
+		borderRadius: RADIUS.md,
+		padding: SPACING.md,
+	},
+	vitalStat: {
+		alignItems: "center",
+		flex: 1,
+	},
+	statLabel: {
+		fontSize: 11,
+		color: COLORS.textSecondary,
+		fontWeight: "600",
+		textTransform: "uppercase",
+		marginBottom: 2,
+	},
+	statVal: {
+		fontSize: 14,
+		fontWeight: "700",
+		color: COLORS.textPrimary,
 	},
 });

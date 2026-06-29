@@ -67,10 +67,11 @@ export function Button({
 				getVariantStyles(),
 				size === "large" && styles.large,
 				fullWidth && styles.fullWidth,
-				pressed && !disabled && {
-					opacity: 0.7,
-					transform: [{ scale: TACTILE.activeScale }],
-				},
+				pressed &&
+					!disabled && {
+						opacity: 0.7,
+						transform: [{ scale: TACTILE.activeScale }],
+					},
 				style,
 			]}
 		>
@@ -81,7 +82,7 @@ export function Button({
 
 const styles = StyleSheet.create({
 	base: {
-		borderRadius: RADIUS.xl,
+		borderRadius: RADIUS.xxl,
 		justifyContent: "center",
 		alignItems: "center",
 		paddingHorizontal: SPACING.xl,

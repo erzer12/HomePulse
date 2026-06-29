@@ -1,14 +1,20 @@
 import { Stack, useLocalSearchParams } from "expo-router";
-import { ScrollView, StyleSheet, Text, View, ActivityIndicator } from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import {
+	ActivityIndicator,
+	ScrollView,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { TaskList } from "@/components/caregiver/TaskList";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Card } from "@/components/ui/Card";
 import { COLORS, SPACING } from "@/constants/colors";
-import { useState, useEffect, useCallback } from "react";
-import { getCaseSummary } from "@/services/supabase";
-import type { CaseSummary } from "@/services/supabase";
 import { buildActionState } from "@/engine";
+import type { CaseSummary } from "@/services/supabase";
+import { getCaseSummary } from "@/services/supabase";
 
 export default function SharedViewScreen() {
 	const insets = useSafeAreaInsets();
@@ -45,12 +51,17 @@ export default function SharedViewScreen() {
 	if (!summary) {
 		return (
 			<View style={[styles.container, styles.center]}>
-				<Text style={styles.errorText}>Shared case not found or link expired.</Text>
+				<Text style={styles.errorText}>
+					Shared case not found or link expired.
+				</Text>
 			</View>
 		);
 	}
 
-	const updatedTime = new Date(summary.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+	const updatedTime = new Date(summary.created_at).toLocaleTimeString([], {
+		hour: "2-digit",
+		minute: "2-digit",
+	});
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -67,17 +78,28 @@ export default function SharedViewScreen() {
 				{/* Patient Summary Card */}
 				<Card variant="elevated" style={styles.summaryCard}>
 					<Text style={styles.summaryLabel}>Patient Summary View</Text>
-					<Text style={styles.summaryTimestamp}>Last updated: {updatedTime}</Text>
+					<Text style={styles.summaryTimestamp}>
+						Last updated: {updatedTime}
+					</Text>
 				</Card>
 
 				<View style={styles.section}>
-					<ActionStateCard state={buildActionState(summary.state_level as 1 | 2 | 3 | 4)} />
+					<ActionStateCard
+						state={buildActionState(summary.state_level as 1 | 2 | 3 | 4)}
+					/>
 				</View>
 
 				{summary.tasks && summary.tasks.length > 0 && (
 					<View style={styles.section}>
 						<Text style={styles.sectionTitle}>Assigned Tasks</Text>
-						<TaskList tasks={summary.tasks.map(t => ({ id: t.id, case_id: summary.case_id, title: t.title, done: t.status === "done" }))} />
+						<TaskList
+							tasks={summary.tasks.map((t) => ({
+								id: t.id,
+								case_id: summary.case_id,
+								title: t.title,
+								done: t.status === "done",
+							}))}
+						/>
 					</View>
 				)}
 
@@ -98,8 +120,8 @@ const styles = StyleSheet.create({
 		backgroundColor: COLORS.background,
 	},
 	center: {
-		justifyContent: 'center',
-		alignItems: 'center',
+		justifyContent: "center",
+		alignItems: "center",
 	},
 	scrollContent: {
 		padding: SPACING.screenEdge,
@@ -142,7 +164,7 @@ const styles = StyleSheet.create({
 	errorText: {
 		fontSize: 16,
 		color: COLORS.textSecondary,
-		textAlign: 'center',
+		textAlign: "center",
 		padding: SPACING.xl,
 	},
 });

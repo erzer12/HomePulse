@@ -1,0 +1,160 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-mono,monospace)}
+.tree{padding:16px 0;font-size:13px;line-height:1.7;color:var(--text-primary)}
+.dir{color:var(--text-primary);font-weight:500}
+.file{color:var(--text-secondary)}
+.new{color:var(--text-success,#1D9E75);font-weight:500}
+.new::after{content:" ✦";font-size:10px;opacity:0.7}
+.changed{color:var(--text-warning,#BA7517);font-weight:500}
+.changed::after{content:" ~";font-size:11px;opacity:0.7}
+.removed{color:var(--text-danger,#A32D2D);text-decoration:line-through;opacity:0.5}
+.note{color:var(--text-muted);font-size:11px;margin-left:8px;font-style:italic;font-family:var(--font-sans)}
+.indent1{padding-left:20px}
+.indent2{padding-left:40px}
+.indent3{padding-left:60px}
+.indent4{padding-left:80px}
+.section-gap{height:10px}
+.legend{display:flex;gap:20px;font-size:12px;color:var(--text-secondary);padding:12px 0 4px;border-top:1px solid var(--border);margin-top:16px;flex-wrap:wrap}
+.l-new{color:var(--text-success,#1D9E75);font-weight:500}
+.l-chg{color:var(--text-warning,#BA7517);font-weight:500}
+.l-keep{color:var(--text-secondary)}
+</style>
+<div class="tree">
+
+<div class="dir">HomePulse/</div>
+
+<div class="indent1 section-gap"></div>
+<div class="indent1 dir">app/ <span class="note">— screens & navigation</span></div>
+
+<div class="indent2"><span class="file">_layout.tsx</span><span class="note">SQLite init · i18n · first-run gate</span></div>
+<div class="indent2"><span class="file">index.tsx</span><span class="note">landing / splash</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">auth/ <span class="new" style="font-size:11px">NEW</span></div>
+<div class="indent3"><span class="new">gateway.tsx</span><span class="note">biometric / passkey prompt</span></div>
+<div class="indent3"><span class="new">lockout.tsx</span><span class="note">fail ×3 → reset or wipe prompt</span></div>
+<div class="indent3"><span class="new">emergency-bypass.tsx</span><span class="note">pre-auth dialer · first aid cards</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">onboarding/</div>
+<div class="indent3"><span class="file">_layout.tsx</span></div>
+<div class="indent3"><span class="file">passkey-setup.tsx</span><span class="note">screen 1: register biometrics</span></div>
+<div class="indent3"><span class="file">household-setup.tsx</span></div>
+<div class="indent3"><span class="file">create-profile.tsx</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">(tabs)/</div>
+<div class="indent3"><span class="file">_layout.tsx</span></div>
+<div class="indent3"><span class="changed">home.tsx</span><span class="note">add multi-active-case selector</span></div>
+<div class="indent3"><span class="file">history.tsx</span></div>
+<div class="indent3"><span class="file">profiles.tsx</span></div>
+<div class="indent3"><span class="file">settings.tsx</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">symptom-check/</div>
+<div class="indent3"><span class="file">select-symptom.tsx</span></div>
+<div class="indent3"><span class="file">questionnaire.tsx</span></div>
+<div class="indent3"><span class="new">household-confirm.tsx</span><span class="note">baseline accuracy check mid-triage</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">result/</div>
+<div class="indent3"><span class="changed">action-state.tsx</span><span class="note">levels 1–3 only</span></div>
+<div class="indent3"><span class="file">explanation.tsx</span></div>
+<div class="indent3"><span class="new">emergency.tsx</span><span class="note">level 4 full-screen · dial 112</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">recheck/</div>
+<div class="indent3"><span class="file">check-in.tsx</span></div>
+<div class="indent3"><span class="file">escalation-alert.tsx</span></div>
+<div class="indent3"><span class="new">stable-result.tsx</span><span class="note">green "patient stable" screen</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">caregiver-share/</div>
+<div class="indent3"><span class="file">share-link.tsx</span></div>
+<div class="indent3"><span class="new">manage-shares.tsx</span><span class="note">list + revoke active tokens</span></div>
+
+<div class="indent2 section-gap"></div>
+<div class="indent2 dir">secondary/ <span class="new" style="font-size:11px">NEW</span><span class="note"> — web/deep-link entry, no auth</span></div>
+<div class="indent3"><span class="new">index.tsx</span><span class="note">token validation gate</span></div>
+<div class="indent3"><span class="new">desk.tsx</span><span class="note">caretaker dashboard · task list</span></div>
+<div class="indent3"><span class="new">token-expired.tsx</span></div>
+<div class="indent3"><span class="new">token-invalid.tsx</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">components/</div>
+
+<div class="indent2 dir">ui/</div>
+<div class="indent3"><span class="file">Button.tsx</span></div>
+<div class="indent3"><span class="file">Card.tsx</span></div>
+<div class="indent3"><span class="file">MotionView.tsx</span></div>
+<div class="indent3"><span class="file">NetworkBanner.tsx</span></div>
+<div class="indent3"><span class="file">ProgressBar.tsx</span></div>
+<div class="indent3"><span class="new">ConfirmDialog.tsx</span><span class="note">resolve case · data wipe confirms</span></div>
+<div class="indent3"><span class="new">SyncStatusBadge.tsx</span><span class="note">max-retry warning badge</span></div>
+
+<div class="indent2 dir">caregiver/</div>
+<div class="indent3"><span class="file">TaskItem.tsx</span></div>
+<div class="indent3"><span class="file">TaskList.tsx</span></div>
+<div class="indent3"><span class="new">ActiveCaseBanner.tsx</span><span class="note">status strip for Home State B</span></div>
+
+<div class="indent2 dir">triage/</div>
+<div class="indent3"><span class="file">ActionStateCard.tsx</span></div>
+<div class="indent3"><span class="file">RecheckTimer.tsx</span></div>
+<div class="indent3"><span class="new">RedFlagAlert.tsx</span><span class="note">inline escalation warning</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">hooks/ <span class="new" style="font-size:11px">NEW</span></div>
+<div class="indent2"><span class="new">useActiveCase.ts</span><span class="note">derive Home A vs B state</span></div>
+<div class="indent2"><span class="new">useNetworkStatus.ts</span><span class="note">extracted from store/sync.ts</span></div>
+<div class="indent2"><span class="new">useRecheckCountdown.ts</span><span class="note">timer logic off RecheckTimer</span></div>
+<div class="indent2"><span class="new">useDraftPersistence.ts</span><span class="note">questionnaire background resume</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">db/</div>
+<div class="indent2"><span class="file">connection.ts</span></div>
+<div class="indent2"><span class="changed">schema.ts</span><span class="note">add wipe_in_progress flag</span></div>
+<div class="indent2 dir">queries/</div>
+<div class="indent3"><span class="file">cases.ts</span></div>
+<div class="indent3"><span class="file">household.ts</span></div>
+<div class="indent3"><span class="file">patients.ts</span></div>
+<div class="indent3"><span class="file">tasks.ts</span></div>
+<div class="indent3"><span class="new">sync.ts</span><span class="note">sync_queue read/write/dequeue</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">store/</div>
+<div class="indent2"><span class="file">case.ts</span></div>
+<div class="indent2"><span class="file">household.ts</span></div>
+<div class="indent2"><span class="file">patient.ts</span></div>
+<div class="indent2"><span class="changed">sync.ts</span><span class="note">keep as network listener only</span></div>
+<div class="indent2"><span class="file">tasks.ts</span></div>
+<div class="indent2"><span class="new">draft.ts</span><span class="note">questionnaire draft state</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">services/</div>
+<div class="indent2"><span class="file">notifications.ts</span></div>
+<div class="indent2"><span class="file">share.ts</span></div>
+<div class="indent2"><span class="file">supabase.ts</span></div>
+<div class="indent2"><span class="file">sync.ts</span></div>
+<div class="indent2"><span class="new">token.ts</span><span class="note">token validation · expiry check</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">engine/</div>
+<div class="indent2"><span class="file">index.ts</span></div>
+<div class="indent2"><span class="file">evaluator.ts</span></div>
+<div class="indent2"><span class="file">red-flags.ts</span></div>
+<div class="indent2"><span class="file">trajectory.ts</span></div>
+
+<div class="section-gap"></div>
+<div class="indent1 dir">i18n/</div>
+<div class="indent2"><span class="file">index.ts</span></div>
+<div class="indent2"><span class="file">en.json</span></div>
+<div class="indent2"><span class="file">hi.json</span></div>
+
+<div class="legend">
+  <span><span class="l-new">✦ green</span> — new file/dir</span>
+  <span><span class="l-chg">~ amber</span> — existing file, needs changes</span>
+  <span><span class="l-keep">gray</span> — keep as-is</span>
+</div>
+</div>

@@ -1,46 +1,40 @@
 {
-  "expo": {
-    "name": "HomePulse",
-    "slug": "homepulse",
-    "version": "1.0.0",
-    "scheme": "homepulse",
-    "orientation": "portrait",
-    "platforms": [
-      "ios",
-      "android",
-      "web"
-    ],
-    "plugins": [
-      "expo-router",
-      "expo-sqlite",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/notification-icon.png",
-          "color": "#1B6CA8"
-        }
-      ],
-      "expo-font"
-    ],
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1B6CA8"
-      },
-      "permissions": [
-        "RECEIVE_BOOT_COMPLETED",
-        "VIBRATE"
-      ]
-    },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.homepulse.app"
-    },
-    "extra": {
-      "router": {},
-      "eas": {
-        "projectId": "695fd35d-2e54-4378-bfe1-024700223673"
-      }
-    }
-  }
+	"expo": {
+		"name": "HomePulse",
+		"slug": "homepulse",
+		"version": "1.0.0",
+		"scheme": "homepulse",
+		"orientation": "portrait",
+		"platforms": ["ios", "android", "web"],
+		"plugins": [
+			"expo-router",
+			"expo-sqlite",
+			[
+				"expo-notifications",
+				{
+					"icon": "./assets/notification-icon.png",
+					"color": "#1B6CA8"
+				}
+			],
+			"expo-font",
+			"expo-camera"
+		],
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#1B6CA8"
+			},
+			"permissions": ["RECEIVE_BOOT_COMPLETED", "VIBRATE"]
+		},
+		"ios": {
+			"supportsTablet": false,
+			"bundleIdentifier": "com.homepulse.app"
+		},
+		"extra": {
+			"router": {},
+			"eas": {
+				"projectId": "695fd35d-2e54-4378-bfe1-024700223673"
+			}
+		}
+	}
 }

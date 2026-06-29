@@ -21,15 +21,9 @@ export function applyHouseholdModifiers(
 		for (const mod of cached.config.household_modifiers) {
 			const cond = mod.condition as Record<string, unknown>;
 			let matches = true;
-			if (
-				cond.transport_available === false &&
-				h.transport_available === true
-			)
+			if (cond.transport_available === false && h.transport_available === true)
 				matches = false;
-			if (
-				cond.overnight_caregiver === false &&
-				h.overnight_caregiver === true
-			)
+			if (cond.overnight_caregiver === false && h.overnight_caregiver === true)
 				matches = false;
 			if (
 				cond.applicable_age_groups &&
@@ -41,10 +35,7 @@ export function applyHouseholdModifiers(
 			if (matches) {
 				adjusted = Math.min(
 					4,
-					Math.max(
-						1,
-						adjusted + (mod.state_adjustment || 0),
-					),
+					Math.max(1, adjusted + (mod.state_adjustment || 0)),
 				);
 				modifiers.push(mod.reason_key || mod.id);
 			}

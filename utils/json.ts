@@ -1,4 +1,7 @@
-export function safeParseJson<T>(raw: string | null | undefined, fallback: T): T {
+export function safeParseJson<T>(
+	raw: string | null | undefined,
+	fallback: T,
+): T {
 	if (raw === null || raw === undefined || raw.trim() === "") {
 		return fallback;
 	}

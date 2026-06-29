@@ -14,11 +14,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
-import { useHouseholdStore } from "@/store/household";
-import { useCaseStore } from "@/store/case";
+import type { SQLiteDatabase } from "@/db/connection";
 import { getDb } from "@/db/connection";
 import { saveHouseholdSnapshot } from "@/db/queries/household";
-import type { SQLiteDatabase } from "@/db/connection";
+import { useCaseStore } from "@/store/case";
+import { useHouseholdStore } from "@/store/household";
 
 interface ReadinessRowProps {
 	label: string;
@@ -78,7 +78,7 @@ export default function HouseholdCheckScreen() {
 			await saveHouseholdSnapshot(
 				db as unknown as SQLiteDatabase,
 				activeCase.id,
-				readiness
+				readiness,
 			);
 			// Re-evaluate with the confirmed household resources
 			await evaluateCase(activeCase.id);
@@ -116,7 +116,9 @@ export default function HouseholdCheckScreen() {
 							<Thermometer
 								size={20}
 								color={
-									readiness.has_thermometer ? COLORS.primary : COLORS.textSecondary
+									readiness.has_thermometer
+										? COLORS.primary
+										: COLORS.textSecondary
 								}
 							/>
 						}
@@ -140,7 +142,9 @@ export default function HouseholdCheckScreen() {
 							<Car
 								size={20}
 								color={
-									readiness.transport_available ? COLORS.primary : COLORS.textSecondary
+									readiness.transport_available
+										? COLORS.primary
+										: COLORS.textSecondary
 								}
 							/>
 						}
@@ -152,7 +156,9 @@ export default function HouseholdCheckScreen() {
 							<Moon
 								size={20}
 								color={
-									readiness.overnight_caregiver ? COLORS.primary : COLORS.textSecondary
+									readiness.overnight_caregiver
+										? COLORS.primary
+										: COLORS.textSecondary
 								}
 							/>
 						}
@@ -164,7 +170,9 @@ export default function HouseholdCheckScreen() {
 							<Pill
 								size={20}
 								color={
-									readiness.medicine_stock ? COLORS.primary : COLORS.textSecondary
+									readiness.medicine_stock
+										? COLORS.primary
+										: COLORS.textSecondary
 								}
 							/>
 						}
@@ -175,7 +183,9 @@ export default function HouseholdCheckScreen() {
 							<MapPin size={20} color={COLORS.primary} />
 						</View>
 						<Text style={styles.rowLabel}>Pharmacy Distance</Text>
-						<Text style={styles.distanceValue}>{readiness.pharmacy_distance_km} km</Text>
+						<Text style={styles.distanceValue}>
+							{readiness.pharmacy_distance_km} km
+						</Text>
 					</View>
 				</Card>
 
@@ -188,7 +198,12 @@ export default function HouseholdCheckScreen() {
 					<Button
 						title="Update Resources"
 						variant="outline"
-						onPress={() => router.push("/onboarding/household-setup")}
+						onPress={() =>
+							router.push({
+								pathname: "/onboarding/household-setup",
+								params: { mode: "edit", activeCaseId: activeCase?.id || "" },
+							})
+						}
 						style={styles.updateButton}
 						disabled={loading}
 					/>

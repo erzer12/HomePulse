@@ -21,6 +21,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 			patient: { age_group: "child", chronic_conditions: [] },
 			symptom: {
 				id: "tc01",
+				case_id: "c1",
 				timestamp: Date.now(),
 				category: "fever",
 				duration_hours: 4,
@@ -42,6 +43,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 			patient: { age_group: "child", chronic_conditions: [] },
 			symptom: {
 				id: "tc02",
+				case_id: "c1",
 				timestamp: Date.now(),
 				category: "fever",
 				duration_hours: 8,
@@ -62,6 +64,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 			patient: { age_group: "infant", age_months: 2, chronic_conditions: [] },
 			symptom: {
 				id: "tc03",
+				case_id: "c1",
 				timestamp: Date.now(),
 				category: "fever",
 				duration_hours: 2,
@@ -83,6 +86,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 			patient: { age_group: "adult", chronic_conditions: ["asthma"] },
 			symptom: {
 				id: "tc04",
+				case_id: "c1",
 				timestamp: Date.now(),
 				category: "respiratory",
 				duration_hours: 3,
@@ -102,6 +106,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 	test("TC-05: Worsening across 3+ dimensions in recheck → State 4 auto-escalation", () => {
 		const prev = {
 			id: "tc05-prev",
+			case_id: "c1",
 			timestamp: Date.now() - 7200000,
 			category: "fever" as const,
 			duration_hours: 6,
@@ -114,6 +119,7 @@ describe("Triage Engine — WHO IMCI Test Cases", () => {
 			patient: { age_group: "child", chronic_conditions: [] },
 			symptom: {
 				id: "tc05",
+				case_id: "c1",
 				timestamp: Date.now(),
 				category: "fever",
 				duration_hours: 8,

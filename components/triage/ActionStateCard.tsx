@@ -20,7 +20,11 @@ export function ActionStateCard({
 			case 3:
 				return COLORS.state.teleconsult;
 			case 4:
-				return COLORS.state.urgent;
+				return {
+					primary: "#FFFFFF",
+					surface: COLORS.criticalRed,
+					text: "#FFFFFF",
+				};
 			default:
 				return COLORS.state.monitor;
 		}

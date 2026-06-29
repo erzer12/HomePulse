@@ -7,13 +7,21 @@ import {
 	Search,
 	Share2,
 } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	Share,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
+import type { TriageOutput } from "@/types/triage";
 import { safeParseJson } from "@/utils/json";
 
 export default function ExplanationScreen() {
@@ -24,27 +32,74 @@ export default function ExplanationScreen() {
 
 	// Get latest triage output and patient info
 	const latestEntry = activeCase?.timeline?.[activeCase.timeline.length - 1];
-	const triageOutput = safeParseJson<any>(latestEntry?.triage_output, null);
-	const patient = profiles.find(p => p.id === activeCase?.patient_id);
+	const triageOutput = safeParseJson<TriageOutput | null>(
+		latestEntry?.triage_output,
+		null,
+	);
+	const patient = profiles.find((p) => p.id === activeCase?.patient_id);
 	const patientName = patient?.name || "the person";
 
 	const getActionStateInfo = (level: number) => {
 		switch (level) {
-			case 4: return { label: "Urgent Care", theme: COLORS.state.urgent };
-			case 3: return { label: "Consultation", theme: COLORS.state.teleconsult };
-			case 2: return { label: "Guided Care", theme: COLORS.state.care };
-			default: return { label: "Monitor", theme: COLORS.state.monitor };
+			case 4:
+				return { label: "Urgent Care", theme: COLORS.state.urgent };
+			case 3:
+				return { label: "Consultation", theme: COLORS.state.teleconsult };
+			case 2:
+				return { label: "Guided Care", theme: COLORS.state.care };
+			default:
+				return { label: "Monitor", theme: COLORS.state.monitor };
 		}
 	};
 
-	const stateInfo = getActionStateInfo(triageOutput?.action_state || 1);
+	const stateInfo = getActionStateInfo(triageOutput?.action_state?.level || 1);
 
 	const assessments = [
-		{ label: "Temperature", value: latestEntry?.temperature_celsius ? `${latestEntry.temperature_celsius}°C` : "Not taken", status: latestEntry?.temperature_celsius && latestEntry.temperature_celsius >= 38 ? "high" : "normal" },
-		{ label: "Symptom", value: latestEntry?.category ? latestEntry.category.charAt(0).toUpperCase() + latestEntry.category.slice(1) : "None", status: "normal" },
-		{ label: "Hydration", value: latestEntry?.hydration_status || "Normal", status: latestEntry?.hydration_status === "poor" ? "high" : "normal" },
-		{ label: "Alertness", value: latestEntry?.consciousness || "Alert", status: latestEntry?.consciousness !== "alert" ? "high" : "normal" },
+		{
+			label: "Temperature",
+			value: latestEntry?.temperature_celsius
+				? `${latestEntry.temperature_celsius}°C`
+				: "Not taken",
+			status:
+				latestEntry?.temperature_celsius &&
+				latestEntry.temperature_celsius >= 38
+					? "high"
+					: "normal",
+		},
+		{
+			label: "Symptom",
+			value: latestEntry?.category
+				? latestEntry.category.charAt(0).toUpperCase() +
+					latestEntry.category.slice(1)
+				: "None",
+			status: "normal",
+		},
+		{
+			label: "Hydration",
+			value: latestEntry?.hydration_status || "Normal",
+			status: latestEntry?.hydration_status === "poor" ? "high" : "normal",
+		},
+		{
+			label: "Alertness",
+			value: latestEntry?.consciousness || "Alert",
+			status: latestEntry?.consciousness !== "alert" ? "high" : "normal",
+		},
 	];
+
+	const onShareReasoning = async () => {
+		try {
+			const message =
+				`HomePulse Clinical Reasoning for ${patientName}:\n\n` +
+				`Current Recommendation: ${stateInfo.label} (Level ${triageOutput?.action_state?.level || 1})\n\n` +
+				`Reasoning:\n${triageOutput?.reasoning || "No details"}\n\n` +
+				`Assessments:\n` +
+				assessments.map((item) => `• ${item.label}: ${item.value}`).join("\n");
+
+			await Share.share({ message });
+		} catch (error) {
+			console.error("Failed to share clinical reasoning", error);
+		}
+	};
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -59,7 +114,12 @@ export default function ExplanationScreen() {
 						</Pressable>
 					),
 					headerRight: () => (
-						<Pressable style={styles.headerIcon}>
+						<Pressable
+							onPress={onShareReasoning}
+							style={styles.headerIcon}
+							accessibilityRole="button"
+							accessibilityLabel="Share Clinical Reasoning"
+						>
 							<Share2 color={COLORS.primary} size={24} />
 						</Pressable>
 					),
@@ -80,13 +140,8 @@ export default function ExplanationScreen() {
 							{ backgroundColor: stateInfo.theme.primary },
 						]}
 					/>
-					<Text
-						style={[
-							styles.statusText,
-							{ color: stateInfo.theme.text },
-						]}
-					>
-						{stateInfo.label} (Level {triageOutput?.action_state || 1})
+					<Text style={[styles.statusText, { color: stateInfo.theme.text }]}>
+						{stateInfo.label} (Level {triageOutput?.action_state?.level || 1})
 					</Text>
 				</View>
 
@@ -124,30 +179,34 @@ export default function ExplanationScreen() {
 					</View>
 					<Card variant="elevated" style={styles.contentCard}>
 						<Text style={styles.reasoningText}>
-							{triageOutput?.reasoning || `Based on the assessment, ${patientName} should be monitored closely for any worsening symptoms.`}
+							{triageOutput?.reasoning ||
+								`Based on the assessment, ${patientName} should be monitored closely for any worsening symptoms.`}
 						</Text>
 					</Card>
 				</View>
 
 				{/* Section 3: Home Care Steps */}
-				{triageOutput?.care_instructions && triageOutput.care_instructions.length > 0 && (
-					<View style={styles.section}>
-						<View style={styles.sectionHeader}>
-							<Home size={20} color={COLORS.primary} />
-							<Text style={styles.sectionTitle}>Home Care Steps</Text>
+				{triageOutput?.care_instructions &&
+					triageOutput.care_instructions.length > 0 && (
+						<View style={styles.section}>
+							<View style={styles.sectionHeader}>
+								<Home size={20} color={COLORS.primary} />
+								<Text style={styles.sectionTitle}>Home Care Steps</Text>
+							</View>
+							<Card variant="elevated" style={styles.contentCard}>
+								{triageOutput.care_instructions.map(
+									(step: string, i: number) => (
+										<View key={step} style={styles.listRow}>
+											<View style={styles.listNumber}>
+												<Text style={styles.listNumberText}>{i + 1}</Text>
+											</View>
+											<Text style={styles.listText}>{step}</Text>
+										</View>
+									),
+								)}
+							</Card>
 						</View>
-						<Card variant="elevated" style={styles.contentCard}>
-						{triageOutput.care_instructions.map((step: string, i: number) => (
-								<View key={step} style={styles.listRow}>
-									<View style={styles.listNumber}>
-										<Text style={styles.listNumberText}>{i + 1}</Text>
-									</View>
-									<Text style={styles.listText}>{step}</Text>
-								</View>
-							))}
-						</Card>
-					</View>
-				)}
+					)}
 
 				{/* Section 4: When to seek higher care */}
 				{triageOutput?.red_flags && triageOutput.red_flags.length > 0 && (

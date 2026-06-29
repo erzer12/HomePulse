@@ -1,42 +1,72 @@
 import { Stack, useFocusEffect } from "expo-router";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { FlatList, StyleSheet, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Card } from "@/components/ui/Card";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
-import { useCaseStore } from "@/store/case";
-import type { SymptomEntry, ActionState } from "@/types/triage";
+import { getDb } from "@/db/connection";
 import { buildActionState } from "@/engine";
+import { useCaseStore } from "@/store/case";
+import type { ActionState, SymptomEntry, TriageOutput } from "@/types/triage";
 import { safeParseJson } from "@/utils/json";
 
 export default function HistoryScreen() {
 	const insets = useSafeAreaInsets();
 	const activeCase = useCaseStore((s) => s.activeCase);
 	const loadLatestActiveCase = useCaseStore((s) => s.loadLatestActiveCase);
+	const [entries, setEntries] = useState<SymptomEntry[]>([]);
 
 	useFocusEffect(
 		useCallback(() => {
-			loadLatestActiveCase();
-		}, [loadLatestActiveCase])
+			(async () => {
+				try {
+					let caseId = activeCase?.id;
+					if (!caseId) {
+						// Only load the latest active case if there isn't one already loaded
+						await loadLatestActiveCase();
+						caseId = useCaseStore.getState().activeCase?.id;
+					}
+					if (!caseId) {
+						setEntries([]);
+						return;
+					}
+
+					const db = await getDb();
+					const rows = await db.getAllAsync(
+						// Parameterised binding scopes entries to the current case only,
+						// preventing cross-patient data leaking in multi-profile households.
+						"SELECT * FROM symptom_entries WHERE case_id = ? ORDER BY timestamp ASC",
+						[caseId],
+					);
+					setEntries(rows as SymptomEntry[]);
+				} catch (err) {
+					console.error("Failed to load symptom history", err);
+				}
+			})();
+		}, [activeCase?.id, loadLatestActiveCase]),
 	);
 
 	const getActionStateTheme = (level: number) => {
 		switch (level) {
-			case 4: return COLORS.state.urgent;
-			case 3: return COLORS.state.teleconsult;
-			case 2: return COLORS.state.care;
-			default: return COLORS.state.monitor;
+			case 4:
+				return COLORS.state.urgent;
+			case 3:
+				return COLORS.state.teleconsult;
+			case 2:
+				return COLORS.state.care;
+			default:
+				return COLORS.state.monitor;
 		}
 	};
 
 	const formatTimestamp = (ts: number) => {
 		const date = new Date(ts);
-		return date.toLocaleString([], { 
-			weekday: 'short', 
-			hour: '2-digit', 
-			minute: '2-digit' 
+		return date.toLocaleString([], {
+			weekday: "short",
+			hour: "2-digit",
+			minute: "2-digit",
 		});
 	};
 
@@ -47,33 +77,30 @@ export default function HistoryScreen() {
 		item: SymptomEntry;
 		index: number;
 	}) => {
-		const triage = safeParseJson<any>(item.triage_output, null);
+		const triage = safeParseJson<TriageOutput | null>(item.triage_output, null);
 		const stateData: ActionState = triage?.action_state || buildActionState(1);
 		const theme = getActionStateTheme(stateData.level);
-		
+
 		return (
-			<MotionView delay={index * DURATION.stagger} style={styles.entryContainer}>
+			<MotionView
+				delay={index * DURATION.stagger}
+				style={styles.entryContainer}
+			>
 				<View style={styles.timelineLineContainer}>
 					<View
 						style={[styles.timelineLine, index === 0 && styles.timelineLineTop]}
 					/>
 					<View
-						style={[
-							styles.timelineDot,
-							{ backgroundColor: theme.primary },
-						]}
+						style={[styles.timelineDot, { backgroundColor: theme.primary }]}
 					/>
 				</View>
 
 				<Card variant="elevated" style={styles.entryCard}>
 					<View style={styles.entryHeader}>
-						<Text style={styles.timestamp}>{formatTimestamp(item.timestamp)}</Text>
-						<View
-							style={[
-								styles.badge,
-								{ backgroundColor: theme.surface },
-							]}
-						>
+						<Text style={styles.timestamp}>
+							{formatTimestamp(item.timestamp)}
+						</Text>
+						<View style={[styles.badge, { backgroundColor: theme.surface }]}>
 							<Text style={[styles.badgeText, { color: theme.text }]}>
 								{stateData.label}
 							</Text>
@@ -85,7 +112,9 @@ export default function HistoryScreen() {
 							<Text style={styles.vitalLabel}>Temp</Text>
 							<View style={styles.vitalValueContainer}>
 								<Text style={styles.vitalValue}>
-									{item.temperature_celsius ? `${item.temperature_celsius}°C` : "N/A"}
+									{item.temperature_celsius
+										? `${item.temperature_celsius}°C`
+										: "N/A"}
 								</Text>
 							</View>
 						</View>
@@ -93,7 +122,8 @@ export default function HistoryScreen() {
 							<Text style={styles.vitalLabel}>Symptom</Text>
 							<View style={styles.vitalValueContainer}>
 								<Text style={styles.vitalValue}>
-									{item.category.charAt(0).toUpperCase() + item.category.slice(1)}
+									{item.category.charAt(0).toUpperCase() +
+										item.category.slice(1)}
 								</Text>
 							</View>
 						</View>
@@ -109,7 +139,7 @@ export default function HistoryScreen() {
 		);
 	};
 
-	const timeline = activeCase?.timeline || [];
+	const timeline = entries;
 	const currentActionState = activeCase?.current_action_state;
 
 	return (
@@ -132,7 +162,7 @@ export default function HistoryScreen() {
 				ListHeaderComponent={() => (
 					<MotionView>
 						<Card style={styles.summaryCard}>
-							<Text style={styles.summaryTitle}>Active Case Summary</Text>
+							<Text style={styles.summaryTitle}>Case Summary</Text>
 							<Text style={styles.summaryDetail}>
 								{activeCase ? `Ongoing Journey` : "No active case"}
 							</Text>
@@ -145,7 +175,9 @@ export default function HistoryScreen() {
 											{ color: COLORS.state.care.text },
 										]}
 									>
-										{currentActionState.label}
+										{typeof currentActionState === "object"
+											? currentActionState.label
+											: `Level ${currentActionState}`}
 									</Text>
 								</View>
 							)}
@@ -154,7 +186,9 @@ export default function HistoryScreen() {
 				)}
 				ListEmptyComponent={() => (
 					<View style={styles.emptyState}>
-						<Text style={styles.emptyText}>No history entries recorded yet.</Text>
+						<Text style={styles.emptyText}>
+							No history entries recorded yet.
+						</Text>
 					</View>
 				)}
 			/>

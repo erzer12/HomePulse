@@ -5,7 +5,7 @@
 
 export const COLORS = {
 	// Foundation Neutrals
-	background: "#F7F3EE", // Warm off-white app base
+	background: "#FDFCF8", // Warm Paper app base
 	surface: "#FFFDFC", // Secondary cards/sheets
 	surfaceElevated: "#FFFFFF", // Primary elevated cards
 	border: "#E5DED5", // Soft separators
@@ -16,6 +16,8 @@ export const COLORS = {
 
 	// Brand / Semantic Roles
 	primary: "#6C9A7D", // Sage green
+	criticalRed: "#D9381E", // Critical emergency red
+	calmTeal: "#4A9E86", // Calm reassuring teal
 	focusRing: "#A7C5AF",
 	disabledBG: "#E8E2DA",
 	disabledText: "#9C958D",

@@ -1,15 +1,14 @@
 import { Stack, useRouter } from "expo-router";
 import { AlertCircle } from "lucide-react-native";
+import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { COLORS, SPACING } from "@/constants/colors";
+import { buildActionState } from "@/engine";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
-import { useState, useEffect } from "react";
-
-import { buildActionState } from "@/engine";
 
 export default function EscalationAlertScreen() {
 	const router = useRouter();
@@ -33,9 +32,13 @@ export default function EscalationAlertScreen() {
 		if (latestEntry.temperature_celsius !== previousEntry.temperature_celsius) {
 			changes.push({
 				label: "Temperature",
-				from: previousEntry.temperature_celsius ? `${previousEntry.temperature_celsius}°C` : "--",
-				to: latestEntry.temperature_celsius ? `${latestEntry.temperature_celsius}°C` : "--",
-				icon: "🌡️"
+				from: previousEntry.temperature_celsius
+					? `${previousEntry.temperature_celsius}°C`
+					: "--",
+				to: latestEntry.temperature_celsius
+					? `${latestEntry.temperature_celsius}°C`
+					: "--",
+				icon: "🌡️",
 			});
 		}
 		if (latestEntry.hydration_status !== previousEntry.hydration_status) {
@@ -43,7 +46,7 @@ export default function EscalationAlertScreen() {
 				label: "Hydration",
 				from: previousEntry.hydration_status,
 				to: latestEntry.hydration_status,
-				icon: "💧"
+				icon: "💧",
 			});
 		}
 		if (latestEntry.consciousness !== previousEntry.consciousness) {
@@ -51,13 +54,21 @@ export default function EscalationAlertScreen() {
 				label: "Consciousness",
 				from: previousEntry.consciousness,
 				to: latestEntry.consciousness,
-				icon: "🧠"
+				icon: "🧠",
 			});
 		}
 	}
 
-	const stateData = activeCase?.triage_output?.action_state || 
-		buildActionState((activeCase?.current_action_state || 4) as 1 | 2 | 3 | 4);
+	const getActionState = () => {
+		if (activeCase?.triage_output?.action_state) {
+			return activeCase.triage_output.action_state;
+		}
+		const rawState = activeCase?.current_action_state;
+		const level = typeof rawState === "object" ? rawState.level : rawState || 4;
+		return buildActionState(level as 1 | 2 | 3 | 4);
+	};
+
+	const stateData = getActionState();
 
 	return (
 		<View style={styles.container}>
@@ -72,7 +83,8 @@ export default function EscalationAlertScreen() {
 					/>
 					<Text style={styles.title}>Condition has worsened</Text>
 					<Text style={styles.summary}>
-						{patientName}'s condition has changed significantly since the last check-in.
+						{patientName}'s condition has changed significantly since the last
+						check-in.
 					</Text>
 				</View>
 

@@ -2,8 +2,7 @@ import { create } from "zustand";
 import type { SQLiteDatabase } from "@/db/connection";
 import { getDb } from "@/db/connection";
 import * as taskQueries from "@/db/queries/tasks";
-import { updateTaskStatus as supabaseUpdateTaskStatus } from "@/services/supabase";
-import { enqueueSyncOperation } from "@/services/sync";
+import { enqueueSyncOperation, flushSyncQueue } from "@/services/sync";
 
 interface TaskItem {
 	id: string;
@@ -40,7 +39,10 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 				db as unknown as SQLiteDatabase,
 				caseId,
 			);
-			set((s) => ({ tasks: { ...s.tasks, [caseId]: rows as TaskItem[] }, loading: false }));
+			set((s) => ({
+				tasks: { ...s.tasks, [caseId]: rows as TaskItem[] },
+				loading: false,
+			}));
 			return rows as TaskItem[];
 		} catch (e: unknown) {
 			set({
@@ -95,18 +97,21 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 				loading: false,
 			}));
 
-			// Attempt server update; on failure enqueue for retry
-			try {
-				await supabaseUpdateTaskStatus(taskId, "done");
-			} catch (_err: unknown) {
-				await enqueueSyncOperation(
-					"task",
-					taskId,
-					"update_status",
-					{ id: taskId, status: "done" },
-					{ idempotencyKey: taskId },
-				);
-			}
+			// Enqueue the sync operation in SQLite immediately and flush in background (non-blocking)
+			(async () => {
+				try {
+					await enqueueSyncOperation(
+						"task",
+						taskId,
+						"update_status",
+						{ id: taskId, status: "done", completed_at: Date.now() },
+						{ idempotencyKey: taskId },
+					);
+					await flushSyncQueue();
+				} catch (err: unknown) {
+					console.error("Failed to enqueue or flush task sync", err);
+				}
+			})();
 		} catch (e: unknown) {
 			set({
 				error: e instanceof Error ? e.message : String(e),

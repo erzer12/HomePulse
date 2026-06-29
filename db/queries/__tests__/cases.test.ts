@@ -1,5 +1,6 @@
 jest.mock("../../../utils/ids", () => ({ createUuid: () => "mock-uuid" }));
 
+import type { TriageOutputType } from "../../../types";
 import type { SQLiteDatabase } from "../../connection";
 import * as cases from "../cases";
 
@@ -56,7 +57,7 @@ describe("cases queries", () => {
 		mockRun.mockResolvedValue({});
 		await cases.updateCaseState(fakeDb, "caseX", {
 			action_state: { level: 2 },
-		});
+		} as unknown as TriageOutputType);
 		await cases.closeCase(fakeDb, "caseX");
 		expect(mockRun).toHaveBeenCalled();
 	});

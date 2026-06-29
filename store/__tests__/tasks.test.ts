@@ -21,9 +21,11 @@ jest.mock("@/services/supabase", () => ({
 }));
 
 const mockEnqueue = jest.fn();
+const mockFlush = jest.fn().mockResolvedValue(undefined);
 jest.mock("@/services/sync", () => ({
 	enqueueSyncOperation: (...args: unknown[]) =>
 		mockEnqueue(...(args as unknown[])),
+	flushSyncQueue: (...args: unknown[]) => mockFlush(...(args as unknown[])),
 }));
 
 describe("Tasks store", () => {
@@ -58,7 +60,7 @@ describe("Tasks store", () => {
 			id: "taskX",
 			case_id: caseId,
 			title: "Check temp",
-			status: "pending",
+			status: "pending" as const,
 			created_at: Date.now(),
 		};
 		// prime store
@@ -75,7 +77,7 @@ describe("Tasks store", () => {
 			"task",
 			task.id,
 			"update_status",
-			{ id: task.id, status: "done" },
+			{ id: task.id, status: "done", completed_at: expect.any(Number) },
 			{ idempotencyKey: task.id },
 		);
 	});
