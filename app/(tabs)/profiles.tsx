@@ -42,7 +42,9 @@ export default function ProfilesScreen() {
 	useFocusEffect(
 		useCallback(() => {
 			loadPatients();
-			loadLatestActiveCase();
+			if (!useCaseStore.getState().activeCase) {
+				loadLatestActiveCase();
+			}
 			loadActiveCases();
 		}, [loadPatients, loadLatestActiveCase, loadActiveCases]),
 	);
@@ -168,7 +170,10 @@ export default function ProfilesScreen() {
 													title="Start Check"
 													size="normal"
 													onPress={() =>
-														router.push("/symptom-check/select-symptom")
+														router.push({
+															pathname: "/symptom-check/select-symptom",
+															params: { patientId: profile.id },
+														})
 													}
 													style={styles.actionButton}
 												/>
@@ -176,7 +181,12 @@ export default function ProfilesScreen() {
 													title="Edit"
 													variant="outline"
 													size="normal"
-													onPress={() => {}}
+													onPress={() =>
+														router.push({
+															pathname: "/onboarding/create-profile",
+															params: { profileId: profile.id },
+														})
+													}
 													style={styles.actionButton}
 												/>
 												<Button

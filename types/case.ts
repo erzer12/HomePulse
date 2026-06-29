@@ -5,6 +5,6 @@ export interface CaseRecord {
 	patient_id: string;
 	status: "active" | "closed";
 	timeline: SymptomEntry[];
-	current_action_state?: ActionState;
+	current_action_state?: number | ActionState;
 	triage_output?: TriageOutput;
 }

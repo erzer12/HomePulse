@@ -12,6 +12,7 @@ import {
 import { useCallback, useState } from "react";
 import {
 	ActivityIndicator,
+	Alert,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -27,11 +28,12 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { SyncStatusBadge } from "@/components/ui/SyncStatusBadge";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { buildActionState } from "@/engine";
 import { useCaseStore } from "@/store/case";
 import { usePatientStore } from "@/store/patient";
 import { useSyncStore } from "@/store/sync";
 import { useTasksStore } from "@/store/tasks";
-import type { ActionState } from "@/types/triage";
+import type { ActionState, ActionStateLevel } from "@/types/triage";
 
 export default function HomeScreen() {
 	const router = useRouter();
@@ -63,7 +65,9 @@ export default function HomeScreen() {
 
 	useFocusEffect(
 		useCallback(() => {
-			loadLatestActiveCase();
+			if (!useCaseStore.getState().activeCase) {
+				loadLatestActiveCase();
+			}
 			loadActiveCases();
 			loadPatients();
 			AsyncStorage.getItem("household_skipped").then((val) => {
@@ -92,8 +96,21 @@ export default function HomeScreen() {
 	const caseTasks = activeCase ? tasks[activeCase.id] || [] : [];
 
 	// Use engine-provided action state if available
-	const stateData =
-		activeCase?.triage_output?.action_state || activeCase?.current_action_state;
+	const getActionState = (): ActionState | null => {
+		if (activeCase?.triage_output?.action_state) {
+			return activeCase.triage_output.action_state;
+		}
+		if (activeCase?.current_action_state != null) {
+			const state = activeCase.current_action_state;
+			const level = (
+				typeof state === "object" ? state.level : state
+			) as ActionStateLevel;
+			return buildActionState(level);
+		}
+		return null;
+	};
+
+	const stateData = getActionState();
 
 	const handleAddTask = async () => {
 		if (!activeCase || !newTaskTitle.trim()) return;
@@ -107,7 +124,9 @@ export default function HomeScreen() {
 
 	const handleResolveCase = async () => {
 		if (!activeCase) return;
-		const count = await useSyncStore.getState().checkPending();
+		const count = await useSyncStore
+			.getState()
+			.checkPendingForCase(activeCase.id);
 		if (count > 0) {
 			setResolveDialogVisible(true);
 		} else {
@@ -118,14 +137,18 @@ export default function HomeScreen() {
 	const executeResolve = async () => {
 		if (!activeCase) return;
 		const name = patientName;
-		setResolveDialogVisible(false);
-		setSimpleResolveVisible(false);
 		try {
 			await closeCase(activeCase.id);
+			setResolveDialogVisible(false);
+			setSimpleResolveVisible(false);
 			setResolvedPatientName(name);
 			setCaseClosedModalVisible(true);
 		} catch (e) {
 			console.error("Failed to resolve case", e);
+			Alert.alert(
+				"Resolution Failed",
+				"Unable to resolve and close this case. Please try again.",
+			);
 		}
 	};
 
@@ -215,7 +238,11 @@ export default function HomeScreen() {
 							<ActiveCaseBanner
 								state={stateData as ActionState}
 								patientName={patientName}
-								recheckLabel={`Recheck timer: ${stateData.recheckIntervalMinutes} mins`}
+								recheckLabel={
+									stateData.level === 4
+										? "Immediate action required"
+										: `Recheck timer: ${stateData.recheckIntervalMinutes} mins`
+								}
 								onPress={() => router.push("/(tabs)/history")}
 							/>
 						)}
@@ -363,7 +390,7 @@ export default function HomeScreen() {
 
 						<Pressable
 							style={styles.actionTile}
-							onPress={() => router.push("/caregiver-share/shared-view")}
+							onPress={() => router.push("/caregiver-share/manage-shares")}
 						>
 							<View
 								style={[

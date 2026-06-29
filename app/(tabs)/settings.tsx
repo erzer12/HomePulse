@@ -340,7 +340,17 @@ export default function SettingsScreen() {
 				{/* Section 5: About */}
 				<View style={styles.aboutSection}>
 					<Text style={styles.versionText}>HomePulse v1.0.0</Text>
-					<Pressable style={styles.legalLink}>
+					<Pressable
+						style={styles.legalLink}
+						onPress={() => {
+							Alert.alert(
+								"Medical Disclaimer & Legal",
+								"HomePulse is a decision support tool designed to assist caregivers. It is NOT a substitute for professional medical advice, diagnosis, or treatment. Always consult a healthcare provider for medical concerns. In life-threatening situations, contact emergency services (112) immediately.\n\nAll health data is stored locally and securely encrypted on your device.",
+							);
+						}}
+						accessibilityRole="button"
+						accessibilityLabel="View Legal and Privacy Policy"
+					>
 						<Text style={styles.legalText}>Legal & Privacy Policy</Text>
 					</Pressable>
 					<View style={styles.disclaimerBox}>

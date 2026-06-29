@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { MotionView } from "@/components/ui/MotionView";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { DURATION } from "@/constants/motion";
+import { getDb } from "@/db/connection";
 import { buildActionState } from "@/engine";
 import { useCaseStore } from "@/store/case";
 import type { ActionState, SymptomEntry, TriageOutput } from "@/types/triage";
@@ -19,20 +20,32 @@ export default function HistoryScreen() {
 
 	useFocusEffect(
 		useCallback(() => {
-			loadLatestActiveCase();
 			(async () => {
 				try {
-					const { getDb } = require("@/db/connection");
+					let caseId = activeCase?.id;
+					if (!caseId) {
+						// Only load the latest active case if there isn't one already loaded
+						await loadLatestActiveCase();
+						caseId = useCaseStore.getState().activeCase?.id;
+					}
+					if (!caseId) {
+						setEntries([]);
+						return;
+					}
+
 					const db = await getDb();
 					const rows = await db.getAllAsync(
-						"SELECT * FROM symptom_entries ORDER BY timestamp ASC",
+						// Parameterised binding scopes entries to the current case only,
+						// preventing cross-patient data leaking in multi-profile households.
+						"SELECT * FROM symptom_entries WHERE case_id = ? ORDER BY timestamp ASC",
+						[caseId],
 					);
 					setEntries(rows as SymptomEntry[]);
 				} catch (err) {
 					console.error("Failed to load symptom history", err);
 				}
 			})();
-		}, [loadLatestActiveCase]),
+		}, [activeCase?.id, loadLatestActiveCase]),
 	);
 
 	const getActionStateTheme = (level: number) => {
@@ -149,7 +162,7 @@ export default function HistoryScreen() {
 				ListHeaderComponent={() => (
 					<MotionView>
 						<Card style={styles.summaryCard}>
-							<Text style={styles.summaryTitle}>Active Case Summary</Text>
+							<Text style={styles.summaryTitle}>Case Summary</Text>
 							<Text style={styles.summaryDetail}>
 								{activeCase ? `Ongoing Journey` : "No active case"}
 							</Text>
@@ -162,7 +175,9 @@ export default function HistoryScreen() {
 											{ color: COLORS.state.care.text },
 										]}
 									>
-										{currentActionState.label}
+										{typeof currentActionState === "object"
+											? currentActionState.label
+											: `Level ${currentActionState}`}
 									</Text>
 								</View>
 							)}
