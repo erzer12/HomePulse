@@ -21,24 +21,31 @@ export function useRecheckCountdown(
 	}, [totalMinutes]);
 
 	useEffect(() => {
-		if (remaining <= 0) {
-			onExpireRef.current?.();
+		const targetSeconds = totalMinutes * 60;
+		if (targetSeconds <= 0) {
 			return;
 		}
 
+		let active = true;
 		const id = setInterval(() => {
 			setRemaining((prev) => {
 				if (prev <= 1) {
 					clearInterval(id);
-					onExpireRef.current?.();
+					if (active) {
+						active = false;
+						onExpireRef.current?.();
+					}
 					return 0;
 				}
 				return prev - 1;
 			});
 		}, 1000);
 
-		return () => clearInterval(id);
-	}, [remaining]);
+		return () => {
+			active = false;
+			clearInterval(id);
+		};
+	}, [totalMinutes]);
 
 	const minutes = Math.floor(remaining / 60);
 	const seconds = remaining % 60;

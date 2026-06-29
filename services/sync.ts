@@ -3,6 +3,7 @@ import { useSyncStore } from "../store/sync";
 import { createCompactId } from "../utils/ids";
 import type { CaseSummary } from "./supabase";
 import { publishCaseSummary, updateTaskStatus } from "./supabase";
+import { revokeAllTokensForCase } from "./token";
 
 type SyncRow = {
 	id: string;
@@ -28,6 +29,18 @@ export async function enqueueSyncOperation(
 ) {
 	const db = await getDb();
 	const idempotency_key = opts?.idempotencyKey ?? null;
+
+	if (idempotency_key) {
+		const existing = await db.getFirstAsync<{ id: string }>(
+			"SELECT id FROM sync_queue WHERE idempotency_key = ?",
+			[idempotency_key],
+		);
+		if (existing) {
+			// Deduplicate: already enqueued
+			return;
+		}
+	}
+
 	const max_retries = opts?.maxRetries ?? 5;
 	const priority = opts?.priority ?? 0;
 	const payloadStr = JSON.stringify(payload);
@@ -67,11 +80,17 @@ export async function flushSyncQueue(limit = 50) {
 	const { setSyncing, checkPending, setError } = useSyncStore.getState();
 	setSyncing(true);
 
+	let hadError = false;
 	for (const row of rows) {
 		try {
 			const payload = JSON.parse(row.payload);
 			if (row.entity_type === "case_summary" && row.operation === "publish") {
 				await publishCaseSummary(payload as CaseSummary);
+			} else if (
+				row.entity_type === "case_summary" &&
+				row.operation === "revoke_all"
+			) {
+				await revokeAllTokensForCase(row.entity_id);
 			} else if (
 				row.entity_type === "task" &&
 				row.operation === "update_status"
@@ -90,6 +109,7 @@ export async function flushSyncQueue(limit = 50) {
 			// success -> delete
 			await db.runAsync(`DELETE FROM sync_queue WHERE id = ?`, [row.id]);
 		} catch (err: unknown) {
+			hadError = true;
 			const lastError = err instanceof Error ? err.message : String(err);
 			const nextRetry = (row.retry_count || 0) + 1;
 			await db.runAsync(
@@ -98,6 +118,11 @@ export async function flushSyncQueue(limit = 50) {
 			);
 			setError(lastError);
 		}
+	}
+
+	// Clear the error banner once all processed rows succeeded
+	if (!hadError) {
+		setError(null);
 	}
 
 	await checkPending();

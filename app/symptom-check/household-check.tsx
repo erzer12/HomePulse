@@ -198,7 +198,12 @@ export default function HouseholdCheckScreen() {
 					<Button
 						title="Update Resources"
 						variant="outline"
-						onPress={() => router.push("/onboarding/household-setup")}
+						onPress={() =>
+							router.push({
+								pathname: "/onboarding/household-setup",
+								params: { mode: "edit", activeCaseId: activeCase?.id || "" },
+							})
+						}
 						style={styles.updateButton}
 						disabled={loading}
 					/>
