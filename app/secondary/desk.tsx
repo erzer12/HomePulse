@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from "expo-router";
 import { ClipboardList, Clock, User } from "lucide-react-native";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import {
 	ActivityIndicator,
 	Pressable,
@@ -10,8 +10,10 @@ import {
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Button } from "@/components/ui/Button";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { supabase, updateTaskStatus } from "@/services/supabase";
+import { validateToken } from "@/services/token";
 
 type CaseSummary = {
 	patient_name: string;
@@ -24,9 +26,11 @@ type CaseSummary = {
 };
 
 /**
- * Secondary Caregiver Desk — read-only case view.
+ * Secondary Caregiver Desk — shared case view.
  * Fetches the shared case summary from Supabase using the deep-link token.
- * No write actions — display only.
+ * Secondary caregivers can toggle caregiver task status (done ↔ pending).
+ * The token is validated on every load, making the route self-defending against
+ * direct deep-link access with an expired or revoked token.
  */
 export default function SecondaryDeskScreen() {
 	const { token } = useLocalSearchParams<{ token: string }>();
@@ -36,29 +40,75 @@ export default function SecondaryDeskScreen() {
 	const [summary, setSummary] = useState<CaseSummary | null>(null);
 	const [error, setError] = useState<string | null>(null);
 
-	useEffect(() => {
+	const loadData = useCallback(async () => {
 		if (!token) return;
-		(async () => {
-			try {
-				const { data, error: fetchErr } = await supabase
-					.from("case_summaries")
-					.select(
-						"patient_name, triage_level, action_title, recheck_interval_minutes, tasks, summary_text, created_at",
-					)
-					.eq("token", token)
-					.single();
-				if (fetchErr || !data) {
-					setError("Unable to load case data. The link may have expired.");
-				} else {
-					setSummary(data as CaseSummary);
-				}
-			} catch {
-				setError("Network error. Please check your connection and try again.");
-			} finally {
-				setLoading(false);
+		setLoading(true);
+		setError(null);
+		try {
+			// Validate the token before fetching any case data.
+			// This makes the desk screen self-defending: even if the user
+			// navigates directly to this route (bypassing secondary/index),
+			// a revoked or expired token is rejected here.
+			const status = await validateToken(token);
+			if (status === "expired") {
+				setError(
+					"This link has expired. Ask the primary caregiver to share a new one.",
+				);
+				return;
 			}
-		})();
+			if (status === "network_error") {
+				setError(
+					"Connection error. Please check your internet connection and try again.",
+				);
+				return;
+			}
+			if (status !== "valid") {
+				setError(
+					"This link is no longer valid. The case may have been closed.",
+				);
+				return;
+			}
+
+			const { data: summaryData, error: fetchErr } = await supabase
+				.from("case_summaries")
+				.select(
+					"patient_name, triage_level, action_title, recheck_interval_minutes, tasks, summary_text, created_at",
+				)
+				.eq("token", token)
+				.single();
+			if (fetchErr || !summaryData) {
+				setError("Unable to load case data. The link may have expired.");
+			} else {
+				// Merge task statuses from the tasks table to avoid reverting on reload
+				const rawTasks = (summaryData.tasks as CaseSummary["tasks"]) || [];
+				if (rawTasks.length > 0) {
+					const taskIds = rawTasks.map((t) => t.id).filter(Boolean);
+					if (taskIds.length > 0) {
+						const { data: tasksData, error: tasksErr } = await supabase
+							.from("tasks")
+							.select("id, status")
+							.in("id", taskIds);
+						if (!tasksErr && tasksData) {
+							const statusMap = new Map(tasksData.map((t) => [t.id, t.status]));
+							summaryData.tasks = rawTasks.map((t) => ({
+								...t,
+								status: statusMap.get(t.id) ?? t.status,
+							}));
+						}
+					}
+				}
+				setSummary(summaryData as CaseSummary);
+			}
+		} catch (e: unknown) {
+			setError(e instanceof Error ? e.message : String(e));
+		} finally {
+			setLoading(false);
+		}
 	}, [token]);
+
+	useEffect(() => {
+		loadData();
+	}, [loadData]);
 
 	const handleToggleTask = async (taskId: string, currentStatus: string) => {
 		if (!summary) return;
@@ -105,9 +155,31 @@ export default function SecondaryDeskScreen() {
 	}
 
 	if (error || !summary) {
+		const isNetwork =
+			error?.toLowerCase().includes("connection") ||
+			error?.toLowerCase().includes("network");
 		return (
-			<View style={[styles.center, { paddingTop: insets.top }]}>
-				<Text style={styles.errorText}>{error ?? "Unknown error"}</Text>
+			<View
+				style={[
+					styles.center,
+					{ paddingTop: insets.top, paddingHorizontal: SPACING.screenEdge },
+				]}
+			>
+				<Text
+					style={[
+						styles.errorText,
+						{ marginBottom: SPACING.lg, textAlign: "center" },
+					]}
+				>
+					{error ?? "Unknown error"}
+				</Text>
+				{isNetwork && (
+					<Button
+						title="Retry Connection"
+						onPress={loadData}
+						style={{ width: "80%" }}
+					/>
+				)}
 			</View>
 		);
 	}
@@ -122,10 +194,10 @@ export default function SecondaryDeskScreen() {
 					{ paddingBottom: insets.bottom + SPACING.xxl },
 				]}
 			>
-				{/* Read-only banner */}
+				{/* Shared view banner — secondary caregivers can toggle task status */}
 				<View style={styles.readOnlyBadge}>
 					<Text style={styles.readOnlyText}>
-						Read-only view · Shared {sharedAt}
+						Shared view · Shared {sharedAt}
 					</Text>
 				</View>
 

@@ -1,4 +1,4 @@
-import { BarCodeScanner } from "expo-barcode-scanner";
+import { Camera, CameraView } from "expo-camera";
 import { Stack, useRouter } from "expo-router";
 import { X } from "lucide-react-native";
 import { useEffect, useState } from "react";
@@ -21,7 +21,7 @@ export default function QRScannerScreen() {
 
 	useEffect(() => {
 		// Check current permission status silently
-		BarCodeScanner.getPermissionsAsync().then(({ status }) => {
+		Camera.getCameraPermissionsAsync().then(({ status }) => {
 			if (status === "granted") {
 				setHasPermission(true);
 				setPrePromptVisible(false);
@@ -31,7 +31,7 @@ export default function QRScannerScreen() {
 
 	const handleRequestPermission = async () => {
 		setPrePromptVisible(false);
-		const { status } = await BarCodeScanner.requestPermissionsAsync();
+		const { status } = await Camera.requestCameraPermissionsAsync();
 		setHasPermission(status === "granted");
 	};
 
@@ -101,8 +101,11 @@ export default function QRScannerScreen() {
 		<View style={styles.container}>
 			<Stack.Screen options={{ headerShown: false }} />
 
-			<BarCodeScanner
-				onBarCodeScanned={scanned ? undefined : handleBarCodeScanned}
+			<CameraView
+				onBarcodeScanned={scanned ? undefined : handleBarCodeScanned}
+				barcodeScannerSettings={{
+					barcodeTypes: ["qr"],
+				}}
 				style={StyleSheet.absoluteFill}
 			/>
 

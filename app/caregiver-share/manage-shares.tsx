@@ -21,7 +21,7 @@ import { useCaseStore } from "@/store/case";
 
 type TokenEntry = {
 	token: string;
-	expires_at: number;
+	expires_at: number | null;
 	created_at: number;
 };
 
@@ -41,11 +41,19 @@ export default function ManageSharesScreen() {
 	const [revokeTarget, setRevokeTarget] = useState<TokenEntry | null>(null);
 
 	const load = useCallback(async () => {
-		if (!activeCase) return;
+		if (!activeCase) {
+			setLoading(false);
+			return;
+		}
 		setLoading(true);
-		const result = await getActiveTokensForCase(activeCase.id);
-		setTokens(result);
-		setLoading(false);
+		try {
+			const result = await getActiveTokensForCase(activeCase.id);
+			setTokens(result);
+		} catch (err) {
+			console.error("Failed to load share tokens", err);
+		} finally {
+			setLoading(false);
+		}
 	}, [activeCase]);
 
 	useEffect(() => {
@@ -71,7 +79,10 @@ export default function ManageSharesScreen() {
 		}
 	};
 
-	const formatExpiry = (ts: number) => {
+	const formatExpiry = (ts: number | null) => {
+		// null means stored as NULL in DB (until_resolved), same as MAX_SAFE_INTEGER sentinel
+		if (ts === null || ts >= Number.MAX_SAFE_INTEGER - 1)
+			return "Active until resolved";
 		const diff = ts - Date.now();
 		if (diff < 0) return "Expired";
 		const hours = Math.floor(diff / 3600000);
@@ -79,6 +90,35 @@ export default function ManageSharesScreen() {
 		if (hours > 0) return `${hours}h ${mins}m remaining`;
 		return `${mins}m remaining`;
 	};
+
+	if (!activeCase) {
+		return (
+			<View
+				style={[
+					styles.container,
+					{ paddingTop: insets.top, paddingBottom: insets.bottom },
+				]}
+			>
+				<View style={styles.header}>
+					<Text style={styles.title}>Active Share Links</Text>
+					<Pressable onPress={() => router.back()} accessibilityRole="button">
+						<Text style={styles.closeBtn}>Done</Text>
+					</Pressable>
+				</View>
+				<View style={styles.center}>
+					<Text style={styles.emptyText}>
+						No active health cases. Start a case on the Home tab to share access
+						with other caregivers.
+					</Text>
+					<Button
+						title="Go Back"
+						onPress={() => router.back()}
+						style={styles.emptyBtn}
+					/>
+				</View>
+			</View>
+		);
+	}
 
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
@@ -99,72 +139,85 @@ export default function ManageSharesScreen() {
 						No active share links for this case.
 					</Text>
 					<Button
-						title="Go Back & Share"
-						onPress={() => router.back()}
+						title="Generate Share Link"
+						onPress={() => router.push("/caregiver-share/share-link")}
 						style={styles.emptyBtn}
 					/>
 				</View>
 			) : (
-				<ScrollView
-					contentContainerStyle={[
-						styles.scroll,
-						{ paddingBottom: insets.bottom + SPACING.xxl },
-					]}
-				>
-					<Text style={styles.hint}>
-						Tap "Revoke" to immediately invalidate a link. The caregiver using
-						it will see an "Invalid Link" screen.
-					</Text>
+				<View style={{ flex: 1 }}>
+					<ScrollView
+						contentContainerStyle={[
+							styles.scroll,
+							{ paddingBottom: insets.bottom + 80 },
+						]}
+					>
+						<Text style={styles.hint}>
+							Tap "Revoke" to immediately invalidate a link. The caregiver using
+							it will see an "Invalid Link" screen.
+						</Text>
 
-					{tokens.map((token) => (
-						<View key={token.token} style={styles.card}>
-							<View style={styles.cardHeader}>
-								<Text style={styles.tokenId}>…{token.token.slice(-8)}</Text>
-								<View style={styles.expiryRow}>
-									<Clock size={13} color={COLORS.textSecondary} />
-									<Text style={styles.expiryText}>
-										{formatExpiry(token.expires_at)}
-									</Text>
+						{tokens.map((token) => (
+							<View key={token.token} style={styles.card}>
+								<View style={styles.cardHeader}>
+									<Text style={styles.tokenId}>…{token.token.slice(-8)}</Text>
+									<View style={styles.expiryRow}>
+										<Clock size={13} color={COLORS.textSecondary} />
+										<Text style={styles.expiryText}>
+											{formatExpiry(token.expires_at)}
+										</Text>
+									</View>
+								</View>
+
+								<View style={styles.actions}>
+									<Pressable
+										style={styles.shareBtn}
+										onPress={() => handleShare(token)}
+										accessibilityRole="button"
+										accessibilityLabel="Resend this share link"
+									>
+										<Share2 size={16} color={COLORS.primary} />
+										<Text style={styles.shareBtnText}>Resend</Text>
+									</Pressable>
+
+									<Pressable
+										style={[
+											styles.revokeBtn,
+											revoking === token.token && styles.revokingBtn,
+										]}
+										onPress={() => setRevokeTarget(token)}
+										disabled={revoking === token.token}
+										accessibilityRole="button"
+										accessibilityLabel="Revoke this share link"
+									>
+										{revoking === token.token ? (
+											<ActivityIndicator
+												size="small"
+												color={COLORS.state.urgent.primary}
+											/>
+										) : (
+											<>
+												<Trash2 size={16} color={COLORS.state.urgent.primary} />
+												<Text style={styles.revokeBtnText}>Revoke</Text>
+											</>
+										)}
+									</Pressable>
 								</View>
 							</View>
-
-							<View style={styles.actions}>
-								<Pressable
-									style={styles.shareBtn}
-									onPress={() => handleShare(token)}
-									accessibilityRole="button"
-									accessibilityLabel="Resend this share link"
-								>
-									<Share2 size={16} color={COLORS.primary} />
-									<Text style={styles.shareBtnText}>Resend</Text>
-								</Pressable>
-
-								<Pressable
-									style={[
-										styles.revokeBtn,
-										revoking === token.token && styles.revokingBtn,
-									]}
-									onPress={() => setRevokeTarget(token)}
-									disabled={revoking === token.token}
-									accessibilityRole="button"
-									accessibilityLabel="Revoke this share link"
-								>
-									{revoking === token.token ? (
-										<ActivityIndicator
-											size="small"
-											color={COLORS.state.urgent.primary}
-										/>
-									) : (
-										<>
-											<Trash2 size={16} color={COLORS.state.urgent.primary} />
-											<Text style={styles.revokeBtnText}>Revoke</Text>
-										</>
-									)}
-								</Pressable>
-							</View>
-						</View>
-					))}
-				</ScrollView>
+						))}
+					</ScrollView>
+					<View
+						style={[
+							styles.footer,
+							{ paddingBottom: insets.bottom + SPACING.lg },
+						]}
+					>
+						<Button
+							title="Generate New Share Link"
+							onPress={() => router.push("/caregiver-share/share-link")}
+						/>
+					</View>
+				</View>
 			)}
 
 			<ConfirmDialog
@@ -261,5 +314,11 @@ const styles = StyleSheet.create({
 		fontSize: 14,
 		fontWeight: "700",
 		color: COLORS.state.urgent.primary,
+	},
+	footer: {
+		backgroundColor: COLORS.background,
+		padding: SPACING.screenEdge,
+		borderTopWidth: 1,
+		borderTopColor: COLORS.border,
 	},
 });
