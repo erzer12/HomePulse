@@ -61,7 +61,11 @@ const DEFAULT_READINESS = {
 
 export default function HouseholdSetupScreen() {
 	const router = useRouter();
-	const { patientId } = useLocalSearchParams<{ patientId: string }>();
+	const { patientId, mode, activeCaseId } = useLocalSearchParams<{
+		patientId?: string;
+		mode?: string;
+		activeCaseId?: string;
+	}>();
 
 	const createCaseForPatient = useCaseStore((s) => s.createCaseForPatient);
 	const setReadiness = useHouseholdStore((s) => s.setReadiness);
@@ -84,8 +88,9 @@ export default function HouseholdSetupScreen() {
 	const [distance, setDistance] = useState("1.5");
 
 	const handleComplete = async () => {
+		const isEdit = mode === "edit";
 		const id = Array.isArray(patientId) ? patientId[0] : patientId;
-		if (!id) {
+		if (!isEdit && !id) {
 			Alert.alert(
 				"Error",
 				"No patient profile found. Please restart the setup.",
@@ -94,29 +99,45 @@ export default function HouseholdSetupScreen() {
 			return;
 		}
 
+		const distVal = parseFloat(distance);
+		if (Number.isNaN(distVal) || distVal < 0 || distVal > 1000) {
+			Alert.alert(
+				"Invalid Distance",
+				"Please enter a valid pharmacy distance between 0 and 1000 km.",
+			);
+			return;
+		}
+
 		setLoading(true);
 		try {
-			// 1. Create a new case for this patient
-			const newCase = await createCaseForPatient(id);
-
-			// 2. Prepare readiness object
+			// 1. Prepare readiness object
 			const readiness = {
 				has_thermometer: resources.thermometer,
 				has_oximeter: resources.oximeter,
 				transport_available: resources.transport,
-				pharmacy_distance_km: parseFloat(distance) || 0,
+				pharmacy_distance_km: distVal,
 				overnight_caregiver: resources.caregiver,
 				medicine_stock: resources.medicine,
 			};
 
-			// 3. Save snapshot to DB
-			// 3. Save snapshot to DB
 			const db = await getDb();
-			await saveHouseholdSnapshot(db, newCase.id, readiness);
-			// 4. Update global store
-			setReadiness(readiness);
 
-			router.replace("/(tabs)/home");
+			if (isEdit) {
+				// Update baseline store
+				setReadiness(readiness);
+				if (activeCaseId) {
+					await saveHouseholdSnapshot(db, activeCaseId, readiness);
+				}
+				router.back();
+			} else {
+				// 1. Create a new case for this patient (only in onboarding)
+				const newCase = await createCaseForPatient(id as string);
+				// 2. Save snapshot to DB
+				await saveHouseholdSnapshot(db, newCase.id, readiness);
+				// 3. Update global store
+				setReadiness(readiness);
+				router.replace("/(tabs)/home");
+			}
 		} catch (err) {
 			Alert.alert("Error", "Failed to complete setup. Please try again.");
 			console.error(err);
@@ -129,36 +150,56 @@ export default function HouseholdSetupScreen() {
 		<View style={styles.container}>
 			<Stack.Screen
 				options={{
-					title: "Step 3 of 3",
+					title: mode === "edit" ? "Update Resources" : "Step 3 of 3",
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
-					headerRight: () => (
-						<Pressable
-							onPress={handleSkip}
-							style={{ marginRight: SPACING.md }}
-							accessibilityRole="button"
-							accessibilityLabel="Skip household setup"
-						>
-							<Text
-								style={{
-									color: COLORS.primary,
-									fontWeight: "700",
-									fontSize: 15,
-								}}
+					headerRight: () =>
+						mode === "edit" ? (
+							<Pressable
+								onPress={() => router.back()}
+								style={{ marginRight: SPACING.md }}
+								accessibilityRole="button"
+								accessibilityLabel="Cancel updating resources"
 							>
-								Skip
-							</Text>
-						</Pressable>
-					),
+								<Text
+									style={{
+										color: COLORS.textSecondary,
+										fontWeight: "700",
+										fontSize: 15,
+									}}
+								>
+									Cancel
+								</Text>
+							</Pressable>
+						) : (
+							<Pressable
+								onPress={handleSkip}
+								style={{ marginRight: SPACING.md }}
+								accessibilityRole="button"
+								accessibilityLabel="Skip household setup"
+							>
+								<Text
+									style={{
+										color: COLORS.primary,
+										fontWeight: "700",
+										fontSize: 15,
+									}}
+								>
+									Skip
+								</Text>
+							</Pressable>
+						),
 				}}
 			/>
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
-				<View style={styles.stepBar}>
-					<View style={styles.stepDot} />
-					<View style={styles.stepDot} />
-					<View style={[styles.stepDot, styles.stepActive]} />
-				</View>
+				{mode !== "edit" && (
+					<View style={styles.stepBar}>
+						<View style={styles.stepDot} />
+						<View style={styles.stepDot} />
+						<View style={[styles.stepDot, styles.stepActive]} />
+					</View>
+				)}
 
 				<View style={styles.header}>
 					<Text style={styles.title}>Your Resources</Text>
@@ -213,7 +254,13 @@ export default function HouseholdSetupScreen() {
 
 				<View style={styles.footer}>
 					<Button
-						title={loading ? "Completing..." : "Complete Setup"}
+						title={
+							loading
+								? "Saving..."
+								: mode === "edit"
+									? "Save Resources"
+									: "Complete Setup"
+						}
 						onPress={handleComplete}
 						disabled={loading}
 					/>

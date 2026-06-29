@@ -7,7 +7,14 @@ import {
 	Search,
 	Share2,
 } from "lucide-react-native";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	Share,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -79,6 +86,21 @@ export default function ExplanationScreen() {
 		},
 	];
 
+	const onShareReasoning = async () => {
+		try {
+			const message =
+				`HomePulse Clinical Reasoning for ${patientName}:\n\n` +
+				`Current Recommendation: ${stateInfo.label} (Level ${triageOutput?.action_state?.level || 1})\n\n` +
+				`Reasoning:\n${triageOutput?.reasoning || "No details"}\n\n` +
+				`Assessments:\n` +
+				assessments.map((item) => `• ${item.label}: ${item.value}`).join("\n");
+
+			await Share.share({ message });
+		} catch (error) {
+			console.error("Failed to share clinical reasoning", error);
+		}
+	};
+
 	return (
 		<View style={[styles.container, { paddingTop: insets.top }]}>
 			<Stack.Screen
@@ -92,7 +114,12 @@ export default function ExplanationScreen() {
 						</Pressable>
 					),
 					headerRight: () => (
-						<Pressable style={styles.headerIcon}>
+						<Pressable
+							onPress={onShareReasoning}
+							style={styles.headerIcon}
+							accessibilityRole="button"
+							accessibilityLabel="Share Clinical Reasoning"
+						>
 							<Share2 color={COLORS.primary} size={24} />
 						</Pressable>
 					),

@@ -1,23 +1,47 @@
 name: EAS Build
 
+# Only run when a version tag is pushed (e.g. v1.2.0).
+# This avoids burning EAS build credits on every commit to main.
+# To trigger: git tag v1.2.0 && git push origin v1.2.0
 on:
   push:
-    branches: [main, fix/emergency-integration]
+    tags:
+      - 'v*'
 
 jobs:
   build:
+    name: EAS Build (${{ matrix.platform }})
     runs-on: ubuntu-latest
+
+    strategy:
+      # Run Android and iOS in parallel to cut total wall-clock time in half.
+      matrix:
+        platform: [android, ios]
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      # Gate: verify the project compiles and all tests pass before
+      # spending EAS credits on a build that would ship broken code.
+      - name: Type-check
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test -- --silent
+
       - name: Setup EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
-      - run: npm ci --legacy-peer-deps
-      - run: eas build --platform android --non-interactive
-      - run: eas build --platform ios --non-interactive
+
+      - name: EAS Build
+        run: eas build --platform ${{ matrix.platform }} --non-interactive

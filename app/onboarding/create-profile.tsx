@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Stack, useRouter } from "expo-router";
-import { useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
 	Alert,
 	Pressable,
@@ -28,7 +28,13 @@ const CONDITIONS = ["Diabetes", "Hypertension", "Asthma", "Pregnancy", "None"];
 
 export default function CreateProfileScreen() {
 	const router = useRouter();
+	const { profileId } = useLocalSearchParams<{ profileId?: string }>();
+
 	const createPatient = usePatientStore((s) => s.createPatient);
+	const updatePatient = usePatientStore((s) => s.updatePatient);
+	const profiles = usePatientStore((s) => s.profiles);
+	const loadPatients = usePatientStore((s) => s.loadPatients);
+
 	const [loading, setLoading] = useState(false);
 	const [permissionVisible, setPermissionVisible] = useState(false);
 	const [savedPatientId, setSavedPatientId] = useState<string | null>(null);
@@ -39,6 +45,26 @@ export default function CreateProfileScreen() {
 	const [allergies, setAllergies] = useState("");
 	const [contactName, setContactName] = useState("");
 	const [contactPhone, setContactPhone] = useState("");
+
+	useEffect(() => {
+		loadPatients();
+	}, [loadPatients]);
+
+	useEffect(() => {
+		if (profileId && profiles.length > 0) {
+			const p = profiles.find((x) => x.id === profileId);
+			if (p) {
+				setName(p.name);
+				setSelectedAge(p.age_group);
+				setSelectedConditions(
+					p.chronic_conditions.length > 0 ? p.chronic_conditions : ["None"],
+				);
+				setAllergies(p.allergies?.join(", ") || "");
+				setContactName(p.emergency_contact_name || "");
+				setContactPhone(p.emergency_contact_phone || "");
+			}
+		}
+	}, [profileId, profiles]);
 
 	const toggleCondition = (condition: string) => {
 		if (condition === "None") {
@@ -61,7 +87,7 @@ export default function CreateProfileScreen() {
 
 		setLoading(true);
 		try {
-			const patient = await createPatient({
+			const payload = {
 				name: name.trim(),
 				age_group: selectedAge,
 				chronic_conditions: selectedConditions.filter((c) => c !== "None"),
@@ -71,13 +97,21 @@ export default function CreateProfileScreen() {
 					.filter(Boolean),
 				emergency_contact_name: contactName.trim() || null,
 				emergency_contact_phone: contactPhone.trim() || null,
-			});
+			};
 
-			setSavedPatientId(patient.id);
-
-			// Mark first-run complete so _layout.tsx routes to auth/gateway on next launch
-			await AsyncStorage.setItem("first_run_completed", "1").catch(() => null);
-			setPermissionVisible(true);
+			if (profileId) {
+				await updatePatient(profileId, payload);
+				Alert.alert("Success", "Profile updated successfully.");
+				router.replace("/(tabs)/profiles");
+			} else {
+				const patient = await createPatient(payload);
+				setSavedPatientId(patient.id);
+				// Mark first-run complete so _layout.tsx routes to auth/gateway on next launch
+				await AsyncStorage.setItem("first_run_completed", "1").catch(
+					() => null,
+				);
+				setPermissionVisible(true);
+			}
 		} catch (err) {
 			Alert.alert("Error", "Failed to save profile. Please try again.");
 			console.error(err);
@@ -112,23 +146,29 @@ export default function CreateProfileScreen() {
 		<View style={styles.container}>
 			<Stack.Screen
 				options={{
-					title: "Step 2 of 3",
+					title: profileId ? "Edit Profile" : "Step 2 of 3",
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
 				}}
 			/>
 
 			<ScrollView contentContainerStyle={styles.scrollContent}>
-				<View style={styles.stepBar}>
-					<View style={styles.stepDot} />
-					<View style={[styles.stepDot, styles.stepActive]} />
-					<View style={styles.stepDot} />
-				</View>
+				{!profileId && (
+					<View style={styles.stepBar}>
+						<View style={styles.stepDot} />
+						<View style={[styles.stepDot, styles.stepActive]} />
+						<View style={styles.stepDot} />
+					</View>
+				)}
 
 				<View style={styles.header}>
-					<Text style={styles.title}>Create Patient Profile</Text>
+					<Text style={styles.title}>
+						{profileId ? "Edit Patient Profile" : "Create Patient Profile"}
+					</Text>
 					<Text style={styles.subtitle}>
-						Tell us about the person you are caring for.
+						{profileId
+							? "Update details for the person you are caring for."
+							: "Tell us about the person you are caring for."}
 					</Text>
 				</View>
 
@@ -231,7 +271,13 @@ export default function CreateProfileScreen() {
 
 				<View style={styles.footer}>
 					<Button
-						title={loading ? "Saving..." : "Save & Continue"}
+						title={
+							loading
+								? "Saving..."
+								: profileId
+									? "Save Changes"
+									: "Save & Continue"
+						}
 						onPress={handleSave}
 						disabled={loading}
 					/>

@@ -59,9 +59,16 @@ export default function EscalationAlertScreen() {
 		}
 	}
 
-	const stateData =
-		activeCase?.triage_output?.action_state ||
-		buildActionState((activeCase?.current_action_state || 4) as 1 | 2 | 3 | 4);
+	const getActionState = () => {
+		if (activeCase?.triage_output?.action_state) {
+			return activeCase.triage_output.action_state;
+		}
+		const rawState = activeCase?.current_action_state;
+		const level = typeof rawState === "object" ? rawState.level : rawState || 4;
+		return buildActionState(level as 1 | 2 | 3 | 4);
+	};
+
+	const stateData = getActionState();
 
 	return (
 		<View style={styles.container}>

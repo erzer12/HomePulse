@@ -1,7 +1,14 @@
 import { Stack, useRouter } from "expo-router";
 import { CheckCircle2, ChevronRight, Clock, Share2 } from "lucide-react-native";
 import { useEffect } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	Share,
+	StyleSheet,
+	Text,
+	View,
+} from "react-native";
 import { ActionStateCard } from "@/components/triage/ActionStateCard";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -43,6 +50,24 @@ export default function ActionStateScreen() {
 		return `${hours} hour${hours > 1 ? "s" : ""}`;
 	};
 
+	const onShareResult = async () => {
+		try {
+			const message =
+				`HomePulse Care Plan:\n\n` +
+				`Current Status: ${stateData.label}\n` +
+				`${stateData.explanation}\n\n` +
+				`Recheck Recommended in: ${formatInterval(stateData.recheckIntervalMinutes)}\n\n` +
+				`Immediate Care Steps:\n` +
+				(triageOutput?.care_instructions || [])
+					.map((step: string) => `• ${step}`)
+					.join("\n");
+
+			await Share.share({ message });
+		} catch (error) {
+			console.error("Failed to share care plan", error);
+		}
+	};
+
 	return (
 		<View style={styles.container}>
 			<Stack.Screen
@@ -51,11 +76,17 @@ export default function ActionStateScreen() {
 					headerStyle: { backgroundColor: COLORS.background },
 					headerShadowVisible: false,
 					headerRight: () => (
-						<Share2
-							size={24}
-							color={COLORS.primary}
-							style={{ marginRight: SPACING.md }}
-						/>
+						<Pressable
+							onPress={onShareResult}
+							accessibilityRole="button"
+							accessibilityLabel="Share Care Plan"
+							style={({ pressed }) => [
+								{ opacity: pressed ? 0.6 : 1 },
+								{ marginRight: SPACING.md, padding: 4 },
+							]}
+						>
+							<Share2 size={24} color={COLORS.primary} />
+						</Pressable>
 					),
 				}}
 			/>

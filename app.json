@@ -16,7 +16,8 @@
 					"color": "#1B6CA8"
 				}
 			],
-			"expo-font"
+			"expo-font",
+			"expo-camera"
 		],
 		"android": {
 			"adaptiveIcon": {

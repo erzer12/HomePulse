@@ -7,20 +7,28 @@ on:
     branches: [main, master, develop, frontend]
 
 jobs:
-  test:
+  ci:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
           cache: 'npm'
+
       - name: Install dependencies
         run: npm ci --legacy-peer-deps
-      - name: Run lint
-        run: npm run lint
-      - name: Run tests
+
+      # biome check covers lint + format in one pass.
+      # `npm run lint` only runs `biome lint` which skips format violations.
+      - name: Lint & format check (Biome)
+        run: npm run check
+
+      # Run tsc separately so type errors surface as a distinct, labelled step.
+      - name: Type-check (TypeScript)
+        run: npm run typecheck
+
+      - name: Unit tests
         run: npm test -- --coverage --silent
-      - name: Verify WHO IMCI test cases pass
-        run: npm test -- engine/__tests__/ --verbose

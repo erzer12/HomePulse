@@ -44,6 +44,10 @@ export default function GatewayScreen() {
 		"idle" | "authenticating" | "success" | "failed"
 	>("idle");
 	const [attempts, setAttempts] = useState<number>(0);
+	// Keep a ref in sync so authenticate() reads the latest count
+	// without being recreated on every increment (which would re-fire the
+	// biometricsAvailable useEffect and create an auto-retry loop).
+	const attemptsRef = useRef(0);
 	const { isConnected } = useNetworkStatus();
 
 	// Pulse animation for the fingerprint icon
@@ -85,18 +89,22 @@ export default function GatewayScreen() {
 			if (result.success) {
 				router.replace("/(tabs)/home");
 			} else {
-				const nextAttempts = attempts + 1;
-				setAttempts(nextAttempts);
+				// Read from ref so this callback is not recreated on each attempt
+				attemptsRef.current += 1;
+				setAttempts(attemptsRef.current);
 				setStatus("failed");
 
-				if (nextAttempts >= MAX_ATTEMPTS) {
+				if (attemptsRef.current >= MAX_ATTEMPTS) {
 					router.push("/auth/lockout");
 				}
 			}
 		} catch {
 			setStatus("failed");
 		}
-	}, [router, attempts, startPulse]);
+		// NOTE: `attempts` is intentionally excluded from deps — we use attemptsRef
+		// to avoid recreating this callback, which would re-fire the biometrics
+		// useEffect and silently lock the user out.
+	}, [router, startPulse]);
 
 	const handleGoogleLogin = async () => {
 		if (!isConnected) {

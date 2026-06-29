@@ -1,4 +1,5 @@
 import { useRouter } from "expo-router";
+import * as Updates from "expo-updates";
 import { RotateCcw, ShieldOff, Trash2 } from "lucide-react-native";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
 import { truncateDatabase } from "@/db/connection";
+import { cancelAllNotifications } from "@/services/notifications";
 
 /**
  * Auth Lockout screen — shown after 3 consecutive biometric failures.
@@ -19,17 +21,30 @@ export default function LockoutScreen() {
 	const router = useRouter();
 	const insets = useSafeAreaInsets();
 	const [wipeDialogVisible, setWipeDialogVisible] = useState(false);
+	const [resetDialogVisible, setResetDialogVisible] = useState(false);
 	const [wiping, setWiping] = useState(false);
 
-	const handleResetBiometrics = async () => {
+	const handleResetBiometrics = () => {
+		setResetDialogVisible(true);
+	};
+
+	const handleResetBiometricsConfirmed = async () => {
+		setResetDialogVisible(false);
 		setWiping(true);
 		try {
+			// Cancel all OS-scheduled recheck alarms before wiping so stale
+			// notifications don't fire pointing at deleted cases.
+			await cancelAllNotifications().catch(() => {});
 			await truncateDatabase();
-		} catch {
-			// Best-effort database truncate
-		} finally {
 			setWiping(false);
+			// Soft reset: navigate directly to the passkey re-enrollment screen
+			// so the user re-registers their biometrics on the same device.
+			// The JS runtime is NOT restarted — in-memory stores clear on navigation.
 			router.replace("/onboarding/passkey-setup");
+		} catch {
+			// Truncation failed — stay on lockout screen so the user knows
+			// their data was NOT cleared, matching the behaviour of Wipe & Restart.
+			setWiping(false);
 		}
 	};
 
@@ -37,8 +52,12 @@ export default function LockoutScreen() {
 		setWipeDialogVisible(false);
 		setWiping(true);
 		try {
+			// Cancel all OS-scheduled recheck alarms before wiping so stale
+			// notifications don't fire pointing at deleted cases.
+			await cancelAllNotifications().catch(() => {});
 			await truncateDatabase();
-			router.replace("/onboarding/passkey-setup");
+			// Reload the JS runtime so all Zustand stores start fresh.
+			await Updates.reloadAsync();
 		} catch {
 			setWiping(false);
 		}
@@ -72,11 +91,12 @@ export default function LockoutScreen() {
 						<Text style={styles.optionTitle}>Reset Biometrics</Text>
 					</View>
 					<Text style={styles.optionDesc}>
-						Re-register your fingerprint or Face ID on this device. Your data is
-						preserved.
+						Re-register your fingerprint or Face ID on this device. All local
+						database records are cleared for security.
 					</Text>
 					<Button
-						title="Reset Biometrics"
+						title={wiping ? "Resetting…" : "Reset Biometrics"}
+						disabled={wiping}
 						onPress={handleResetBiometrics}
 						style={styles.optionBtn}
 					/>
@@ -113,6 +133,18 @@ export default function LockoutScreen() {
 				destructive
 				onConfirm={handleWipeConfirmed}
 				onCancel={() => setWipeDialogVisible(false)}
+			/>
+
+			<ConfirmDialog
+				visible={resetDialogVisible}
+				title="Reset Biometrics"
+				message="To re-register biometrics, all local database records must be cleared for security. Type RESET to confirm."
+				requiresTyping="RESET"
+				confirmLabel="Reset & Clear Data"
+				cancelLabel="Cancel"
+				destructive
+				onConfirm={handleResetBiometricsConfirmed}
+				onCancel={() => setResetDialogVisible(false)}
 			/>
 		</View>
 	);

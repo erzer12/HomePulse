@@ -15,6 +15,9 @@ export default function AuthCallback() {
 	const url = Linking.useURL();
 
 	useEffect(() => {
+		let active = true;
+		let timer: NodeJS.Timeout | null = null;
+
 		const parseAndSetSession = async () => {
 			if (url) {
 				const { queryParams } = Linking.parse(url);
@@ -43,7 +46,7 @@ export default function AuthCallback() {
 						access_token,
 						refresh_token,
 					});
-					if (!error) {
+					if (!error && active) {
 						router.replace("/(tabs)/home");
 						return;
 					}
@@ -52,23 +55,30 @@ export default function AuthCallback() {
 
 			// Fallback check
 			const { data } = await supabase.auth.getSession();
+			if (!active) return;
 			if (data.session) {
 				router.replace("/(tabs)/home");
 			} else {
 				// Delay check if session is still setting in AsyncStorage
-				const timer = setTimeout(async () => {
+				timer = setTimeout(async () => {
+					if (!active) return;
 					const { data: secondCheck } = await supabase.auth.getSession();
+					if (!active) return;
 					if (secondCheck.session) {
 						router.replace("/(tabs)/home");
 					} else {
 						router.replace("/auth/gateway");
 					}
 				}, 1000);
-				return () => clearTimeout(timer);
 			}
 		};
 
 		parseAndSetSession();
+
+		return () => {
+			active = false;
+			if (timer) clearTimeout(timer);
+		};
 	}, [url, router]);
 
 	return (
