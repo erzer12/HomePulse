@@ -9,5 +9,5 @@ export const CLINICAL_THRESHOLDS = {
 	baseStateModerateFeverCelsius: 38.5,
 	trajectoryTemperatureRiseCelsius: 0.5,
 	trajectorySpo2DropPercent: 2,
-	trajectoryEscalationDimensions: 1,
+	trajectoryEscalationDimensions: 3,
 } as const;

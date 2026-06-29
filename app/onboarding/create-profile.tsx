@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PermissionPromptModal } from "@/components/ui/PermissionPromptModal";
 import { COLORS, RADIUS, SPACING } from "@/constants/colors";
+import { requestNotificationPermissions } from "@/services/notifications";
 import { usePatientStore } from "@/store/patient";
 import type { AgeGroup } from "@/types/triage";
 
@@ -122,12 +123,7 @@ export default function CreateProfileScreen() {
 
 	const handleRequestPermission = async () => {
 		setPermissionVisible(false);
-		try {
-			const Notifications = require("expo-notifications");
-			await Notifications.requestPermissionsAsync();
-		} catch {
-			// Ignore if not supported in simulator/env
-		}
+		await requestNotificationPermissions().catch(() => {});
 		router.replace({
 			pathname: "/onboarding/household-setup",
 			params: { patientId: savedPatientId || "" },

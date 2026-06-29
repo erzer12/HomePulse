@@ -14,10 +14,12 @@ interface SyncStatusBadgeProps {
  * Renders nothing when there are no failures.
  */
 export function SyncStatusBadge({ onPress }: SyncStatusBadgeProps) {
-	const { pendingCount, error } = useSyncStore();
+	const { pendingCount, isSyncing, error } = useSyncStore();
 
-	// Only surface badge if there's a reported error or stuck pending items
-	if (!error && pendingCount === 0) return null;
+	// Only surface badge if there's a reported error OR items are stuck in the
+	// queue and NOT currently being flushed. Suppresses false-positive warnings
+	// during a normal in-progress background sync.
+	if (!error && (pendingCount === 0 || isSyncing)) return null;
 
 	return (
 		<Pressable

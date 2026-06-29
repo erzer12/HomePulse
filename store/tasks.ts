@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { SQLiteDatabase } from "@/db/connection";
 import { getDb } from "@/db/connection";
 import * as taskQueries from "@/db/queries/tasks";
-import { enqueueSyncOperation } from "@/services/sync";
+import { enqueueSyncOperation, flushSyncQueue } from "@/services/sync";
 
 interface TaskItem {
 	id: string;
@@ -107,7 +107,6 @@ export const useTasksStore = create<TasksState>((set, _get) => ({
 						{ id: taskId, status: "done", completed_at: Date.now() },
 						{ idempotencyKey: taskId },
 					);
-					const { flushSyncQueue } = require("@/services/sync");
 					await flushSyncQueue();
 				} catch (err: unknown) {
 					console.error("Failed to enqueue or flush task sync", err);

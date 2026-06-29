@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Check, ChevronLeft, X } from "lucide-react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
+	Alert,
 	Animated,
 	KeyboardAvoidingView,
 	Platform,
@@ -152,11 +153,29 @@ export default function QuestionnaireScreen() {
 	};
 
 	const handleNext = async () => {
-		// If numeric, save input first
-		if (currentQuestion.type === "numeric" && inputValue) {
+		// If numeric, validate and save input first
+		if (currentQuestion.type === "numeric") {
+			if (!inputValue.trim()) {
+				Alert.alert("Input Required", "Please enter a value to proceed.");
+				return;
+			}
+			const val = Number.parseFloat(inputValue);
+			if (Number.isNaN(val)) {
+				Alert.alert("Invalid Input", "Please enter a valid numeric value.");
+				return;
+			}
+			if (currentQuestion.id === "temperature") {
+				if (val < 30 || val > 45) {
+					Alert.alert(
+						"Unusual Temperature",
+						"Please enter a temperature between 30°C and 45°C.",
+					);
+					return;
+				}
+			}
 			setAnswers((prev) => ({
 				...prev,
-				[currentQuestion.id]: Number.parseFloat(inputValue),
+				[currentQuestion.id]: val,
 			}));
 		}
 

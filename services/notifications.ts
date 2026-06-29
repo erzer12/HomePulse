@@ -16,6 +16,7 @@ const getNotificationsModule = () => {
 };
 
 export async function scheduleRecheckNotification(
+	caseId: string,
 	minutesFromNow: number,
 	body: string,
 ): Promise<string> {
@@ -27,7 +28,12 @@ export async function scheduleRecheckNotification(
 		return "mock-notification-id";
 	}
 
+	// Identifier is prefixed with recheck-<caseId> so cancelNotificationsForCase
+	// can filter by prefix and cancel exactly this case's alarms.
+	const identifier = `recheck-${caseId}-${Date.now()}`;
+
 	return Notifications.scheduleNotificationAsync({
+		identifier,
 		content: { title: "HomePulse Recheck", body },
 		trigger: {
 			type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -45,4 +51,36 @@ export async function cancelAllNotifications(): Promise<void> {
 		return;
 	}
 	await Notifications.cancelAllScheduledNotificationsAsync();
+}
+
+/**
+ * Cancels only the scheduled notifications that belong to a specific case.
+ * Notification identifiers are prefixed with `recheck-<caseId>` when scheduled.
+ */
+export async function cancelNotificationsForCase(
+	caseId: string,
+): Promise<void> {
+	const Notifications = getNotificationsModule();
+	if (!Notifications) return;
+
+	const scheduled: { identifier: string }[] =
+		await Notifications.getAllScheduledNotificationsAsync();
+	const prefix = `recheck-${caseId}`;
+	await Promise.all(
+		scheduled
+			.filter((n) => n.identifier.startsWith(prefix))
+			.map((n) => Notifications.cancelScheduledNotificationAsync(n.identifier)),
+	);
+}
+
+export async function requestNotificationPermissions(): Promise<boolean> {
+	const Notifications = getNotificationsModule();
+	if (!Notifications) return false;
+	try {
+		const { status } = await Notifications.requestPermissionsAsync();
+		return status === "granted";
+	} catch (e) {
+		console.warn("Failed to request notification permissions:", e);
+		return false;
+	}
 }
